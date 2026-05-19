@@ -1,0 +1,111 @@
+============================================================
+ADMIN ACCOUNT MANAGEMENT - DATABASE ONLY
+============================================================
+
+IMPORTANT: Admins are READ-ONLY in the application
+- Admins can ONLY login (no registration through website)
+- Admin accounts can ONLY be created in Railway database
+- Passwords MUST be bcrypt-hashed
+
+============================================================
+HOW TO ADD AN ADMIN ACCOUNT
+============================================================
+
+STEP 1: Generate Password Hash
+-------------------------------
+Run this command in your local terminal:
+
+  node hash-password.js YourPasswordHere
+
+Example:
+  node hash-password.js WaesTakeOutOrTakeMe
+
+This will output a bcrypt hash like:
+  $2b$10$abc123xyz...
+
+Copy this hash!
+
+
+STEP 2: Insert Admin in Railway
+--------------------------------
+Go to Railway → Your MySQL Service → Query tab
+
+Paste this SQL (replace with your values):
+
+  INSERT INTO admins (username, password, email) VALUES 
+  ('YourUsername', 'PASTE_BCRYPT_HASH_HERE', 'your@email.com')
+  ON DUPLICATE KEY UPDATE 
+    password = 'PASTE_BCRYPT_HASH_HERE',
+    email = 'your@email.com';
+
+Example:
+  INSERT INTO admins (username, password, email) VALUES 
+  ('Talotalo', '$2b$10$abc123xyz...', 'Talotalo@pchaven.com')
+  ON DUPLICATE KEY UPDATE 
+    password = '$2b$10$abc123xyz...',
+    email = 'Talotalo@pchaven.com';
+
+
+STEP 3: Verify Admin Was Created
+---------------------------------
+Run this in Railway Query tab:
+
+  SELECT id, username, email, created_at FROM admins;
+
+You should see your admin account listed.
+
+
+STEP 4: Login to Admin Dashboard
+---------------------------------
+Go to your website login page and enter:
+
+  Email/Username: Talotalo@pchaven.com  (or just: Talotalo)
+  Password: WaesTakeOutOrTakeMe
+
+You'll be automatically redirected to the admin dashboard!
+
+============================================================
+CURRENT ADMIN ACCOUNT
+============================================================
+
+Based on your database.sql, you have:
+  Username: Talotalo
+  Email: Talotalo@pchaven.com
+  Password: WaesTakeOutOrTakeMe (plain text - needs to be hashed!)
+
+⚠️  ACTION REQUIRED:
+1. Run: node hash-password.js WaesTakeOutOrTakeMe
+2. Copy the hash
+3. Update your Railway database with the hash
+
+============================================================
+SECURITY NOTES
+============================================================
+
+✅ Admins CANNOT register through the website
+✅ Only database administrators can create admin accounts
+✅ Passwords are bcrypt-hashed (10 salt rounds)
+✅ Admin and customer logins are separate systems
+✅ Admin tokens expire after 7 days
+
+❌ Never store plain text passwords in the database
+❌ Never share your bcrypt hashes publicly
+❌ Never commit admin credentials to Git
+
+============================================================
+TROUBLESHOOTING
+============================================================
+
+❌ "Invalid username/email or password"
+   → Password in database is not bcrypt-hashed
+   → Run hash-password.js and update database
+
+❌ "Cannot find module 'bcrypt'"
+   → Run: npm install
+   → Make sure bcrypt is in package.json
+
+❌ Admin redirects to customer site
+   → Check if admin exists in admins table
+   → Verify password hash is correct
+
+============================================================

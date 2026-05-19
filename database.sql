@@ -44,15 +44,20 @@ CREATE TABLE IF NOT EXISTS order_items (
     INDEX idx_order_id (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Admins table
+-- Admins table (READ-ONLY - No registration through website)
+-- Admins can ONLY be created by inserting directly into this table
 CREATE TABLE IF NOT EXISTS admins (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_username (username)
+    INDEX idx_username (username),
+    INDEX idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- NOTE: To add admin accounts, use INSERT_ADMIN.sql
+-- Passwords must be bcrypt-hashed (use hash-password.js to generate)
 
 -- Products table
 CREATE TABLE IF NOT EXISTS products (
@@ -72,11 +77,6 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_category (category),
     INDEX idx_stock (stock)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Insert default admin account (username: admin, password: admin123)
-INSERT INTO admins (username, password, email) VALUES 
-('admin', 'WaesTakeOutOrTakeMe', 'Talotalo@pchaven.com')
-ON DUPLICATE KEY UPDATE username=username;
 
 -- Show tables
 SHOW TABLES;

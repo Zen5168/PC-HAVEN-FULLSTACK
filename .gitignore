@@ -41,13 +41,14 @@ tmp/
 temp/
 *.tmp
 
-# Database dumps
-.sql
+# Database dumps (but keep schema files)
 *.sql.backup
 backups/
 
 # Documentation files - IGNORE ALL .md FILES
 *.md
 
-# Text documentation files (except ADMIN_SETUP.txt)
+# Text documentation files (except important guides)
 *.txt
+!ADMIN_SETUP.txt
+!ADMIN_DATABASE_GUIDE.txt
