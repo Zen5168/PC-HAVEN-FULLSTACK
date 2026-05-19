@@ -42,6 +42,8 @@ temp/
 *.tmp
 
 # Database dumps (but keep schema files)
+.sql
+*.sql
 *.sql.backup
 backups/
 
@@ -50,5 +52,3 @@ backups/
 
 # Text documentation files (except important guides)
 *.txt
-!ADMIN_SETUP.txt
-!ADMIN_DATABASE_GUIDE.txt
