@@ -7,7 +7,7 @@
 -- Username: admin
 -- Password: admin123
 INSERT INTO admins (username, password, email) VALUES 
-('admin', '$2b$10$YourHashedPasswordHere', 'admin@pchaven.com')
+('admin', 'WaesTakeOutOrTakeMe', 'Talotalo@pchaven.com')
 ON DUPLICATE KEY UPDATE username=username;
 
 -- Note: The password hash above is a placeholder.
