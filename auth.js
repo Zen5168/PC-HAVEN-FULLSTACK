@@ -262,7 +262,34 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
   
   try {
-    // Call API
+    // First, try admin login
+    const adminResponse = await fetch(`${API_URL}/admin/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username: email.split('@')[0], password })
+    });
+    
+    if (adminResponse.ok) {
+      const adminData = await adminResponse.json();
+      
+      if (adminData.success) {
+        // Save admin session
+        localStorage.setItem('adminToken', adminData.token);
+        localStorage.setItem('adminData', JSON.stringify(adminData.admin));
+        
+        showAlert('Welcome Admin! Redirecting to dashboard...', 'success');
+        
+        // Redirect to admin dashboard
+        setTimeout(() => {
+          window.location.href = 'admin.html';
+        }, 1000);
+        return;
+      }
+    }
+    
+    // If not admin, try customer login
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
@@ -274,13 +301,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const data = await response.json();
     
     if (!response.ok) {
-      showAlert(data.message || 'Login failed', 'error');
+      showAlert(data.message || 'Invalid email or password', 'error');
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Login';
       return;
     }
     
-    // Save session
+    // Save customer session
     const session = {
       userId: data.user.id,
       name: data.user.name,
@@ -298,7 +325,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     
     showAlert(data.message, 'success');
     
-    // Redirect to main page after 1 second
+    // Redirect to customer page
     setTimeout(() => {
       window.location.href = 'home.html';
     }, 1000);
