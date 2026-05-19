@@ -229,7 +229,7 @@ const authenticateAdmin = (req, res, next) => {
 
 // Admin login
 app.post('/api/admin/login', [
-  body('username').notEmpty().withMessage('Username is required'),
+  body('username').notEmpty().withMessage('Username or email is required'),
   body('password').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
   try {
@@ -243,15 +243,16 @@ app.post('/api/admin/login', [
 
     const { username, password } = req.body;
 
+    // Check if admin exists by username OR email
     const [admins] = await db.query(
-      'SELECT id, username, email, password FROM admins WHERE username = ?',
-      [username]
+      'SELECT id, username, email, password FROM admins WHERE username = ? OR email = ?',
+      [username, username]
     );
 
     if (admins.length === 0) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Invalid username or password' 
+        message: 'Invalid username/email or password' 
       });
     }
 
@@ -261,7 +262,7 @@ app.post('/api/admin/login', [
     if (!isPasswordValid) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Invalid username or password' 
+        message: 'Invalid username/email or password' 
       });
     }
 

@@ -247,7 +247,15 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Logging in...';
   
   // Validation
-  if (!isValidEmail(email)) {
+  if (email.length === 0) {
+    showAlert('Please enter your email or username', 'error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Login';
+    return;
+  }
+  
+  // Only validate email format if it contains @
+  if (email.includes('@') && !isValidEmail(email)) {
     showAlert('Please enter a valid email address', 'error');
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Login';
@@ -262,13 +270,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
   
   try {
-    // First, try admin login
+    // Try admin login first (check by username or email)
     const adminResponse = await fetch(`${API_URL}/admin/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ username: email.split('@')[0], password })
+      body: JSON.stringify({ username: email, password })
     });
     
     if (adminResponse.ok) {
@@ -289,7 +297,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       }
     }
     
-    // If not admin, try customer login
+    // If admin login failed, try customer login
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {

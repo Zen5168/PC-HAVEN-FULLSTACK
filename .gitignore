@@ -42,6 +42,7 @@ temp/
 *.tmp
 
 # Database dumps
+.sql
 *.sql.backup
 backups/
 
