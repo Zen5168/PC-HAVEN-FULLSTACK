@@ -12,7 +12,7 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
 function checkAdminAuth() {
   const adminToken = localStorage.getItem('adminToken');
   if (!adminToken) {
-    window.location.href = 'admin-login.html';
+    window.location.href = 'index.html';
     return false;
   }
   
@@ -25,7 +25,7 @@ function checkAdminAuth() {
 function adminLogout() {
   localStorage.removeItem('adminToken');
   localStorage.removeItem('adminData');
-  window.location.href = 'admin-login.html';
+  window.location.href = 'index.html';
 }
 
 // Show section
