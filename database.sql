@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS products (
 
 -- Insert default admin account (username: admin, password: admin123)
 INSERT INTO admins (username, password, email) VALUES 
-('admin', '$2b$10$rKvVPZqGhZ5YJxH8YqKqXOxGZJ5YJxH8YqKqXOxGZJ5YJxH8YqKqXO', 'admin@pchaven.com')
+('admin', 'WaesTakeOutOrTakeMe', 'Talotalo@pchaven.com')
 ON DUPLICATE KEY UPDATE username=username;
 
 -- Show tables
