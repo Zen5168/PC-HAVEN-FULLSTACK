@@ -48,5 +48,5 @@ backups/
 # Documentation files - IGNORE ALL .md FILES
 *.md
 
-# Text documentation files
+# Text documentation files (except ADMIN_SETUP.txt)
 *.txt

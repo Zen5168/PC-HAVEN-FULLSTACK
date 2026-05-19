@@ -44,6 +44,40 @@ CREATE TABLE IF NOT EXISTS order_items (
     INDEX idx_order_id (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Admins table
+CREATE TABLE IF NOT EXISTS admins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Products table
+CREATE TABLE IF NOT EXISTS products (
+    id VARCHAR(50) PRIMARY KEY,
+    category VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    spec TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    stock INT NOT NULL DEFAULT 0,
+    label VARCHAR(50),
+    emoji VARCHAR(10),
+    image TEXT,
+    platform VARCHAR(50),
+    ram_type VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_category (category),
+    INDEX idx_stock (stock)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default admin account (username: admin, password: admin123)
+INSERT INTO admins (username, password, email) VALUES 
+('admin', '$2b$10$rKvVPZqGhZ5YJxH8YqKqXOxGZJ5YJxH8YqKqXOxGZJ5YJxH8YqKqXO', 'admin@pchaven.com')
+ON DUPLICATE KEY UPDATE username=username;
+
 -- Show tables
 SHOW TABLES;
 
@@ -51,4 +85,6 @@ SHOW TABLES;
 DESCRIBE users;
 DESCRIBE orders;
 DESCRIBE order_items;
+DESCRIBE admins;
+DESCRIBE products;
 

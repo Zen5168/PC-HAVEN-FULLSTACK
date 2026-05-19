@@ -199,6 +199,368 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// Admin authentication middleware
+const authenticateAdmin = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Access denied. No token provided.' 
+    });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, admin) => {
+    if (err || !admin.isAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access denied. Admin only.' 
+      });
+    }
+    req.admin = admin;
+    next();
+  });
+};
+
+/* ============================================================
+   ADMIN ROUTES
+============================================================ */
+
+// Admin login
+app.post('/api/admin/login', [
+  body('username').notEmpty().withMessage('Username is required'),
+  body('password').notEmpty().withMessage('Password is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: errors.array()[0].msg 
+      });
+    }
+
+    const { username, password } = req.body;
+
+    const [admins] = await db.query(
+      'SELECT id, username, email, password FROM admins WHERE username = ?',
+      [username]
+    );
+
+    if (admins.length === 0) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid username or password' 
+      });
+    }
+
+    const admin = admins[0];
+    const isPasswordValid = await bcrypt.compare(password, admin.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid username or password' 
+      });
+    }
+
+    const token = jwt.sign(
+      { adminId: admin.id, username: admin.username, isAdmin: true },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        email: admin.email
+      },
+      token
+    });
+
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// Get dashboard stats
+app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
+  try {
+    const [orderStats] = await db.query(`
+      SELECT 
+        COUNT(*) as totalOrders,
+        SUM(total) as totalRevenue,
+        SUM(CASE WHEN status = 'Processing' THEN 1 ELSE 0 END) as pendingOrders
+      FROM orders
+    `);
+
+    const [productStats] = await db.query('SELECT COUNT(*) as totalProducts FROM products');
+
+    res.json({
+      success: true,
+      stats: {
+        totalOrders: orderStats[0].totalOrders,
+        totalRevenue: parseFloat(orderStats[0].totalRevenue || 0),
+        pendingOrders: orderStats[0].pendingOrders,
+        totalProducts: productStats[0].totalProducts
+      }
+    });
+
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch stats' 
+    });
+  }
+});
+
+// Get all orders
+app.get('/api/admin/orders', authenticateAdmin, async (req, res) => {
+  try {
+    const [orders] = await db.query(`
+      SELECT 
+        o.id,
+        o.order_id,
+        o.total,
+        o.status,
+        o.created_at,
+        o.cancelled_at,
+        u.name as customer_name,
+        u.email as customer_email
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      ORDER BY o.created_at DESC
+    `);
+
+    for (let order of orders) {
+      const [items] = await db.query(`
+        SELECT 
+          product_id,
+          product_name,
+          price,
+          quantity
+        FROM order_items
+        WHERE order_id = ?
+      `, [order.id]);
+      
+      order.items = items;
+    }
+
+    res.json({
+      success: true,
+      orders
+    });
+
+  } catch (error) {
+    console.error('Get orders error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch orders' 
+    });
+  }
+});
+
+// Mark order as delivered
+app.patch('/api/admin/orders/:orderId/deliver', authenticateAdmin, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const [orders] = await db.query(
+      'SELECT id, status FROM orders WHERE order_id = ?',
+      [orderId]
+    );
+
+    if (orders.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+
+    await db.query(
+      'UPDATE orders SET status = ? WHERE order_id = ?',
+      ['Delivered', orderId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Order marked as delivered'
+    });
+
+  } catch (error) {
+    console.error('Deliver order error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update order' 
+    });
+  }
+});
+
+// Cancel order (admin)
+app.patch('/api/admin/orders/:orderId/cancel', authenticateAdmin, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const [orders] = await db.query(
+      'SELECT id, status FROM orders WHERE order_id = ?',
+      [orderId]
+    );
+
+    if (orders.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+
+    await db.query(
+      'UPDATE orders SET status = ?, cancelled_at = NOW() WHERE order_id = ?',
+      ['Cancelled', orderId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Order cancelled'
+    });
+
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to cancel order' 
+    });
+  }
+});
+
+// Get all products
+app.get('/api/admin/products', authenticateAdmin, async (req, res) => {
+  try {
+    const [products] = await db.query('SELECT * FROM products ORDER BY category, name');
+
+    res.json({
+      success: true,
+      products
+    });
+
+  } catch (error) {
+    console.error('Get products error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch products' 
+    });
+  }
+});
+
+// Add product
+app.post('/api/admin/products', authenticateAdmin, async (req, res) => {
+  try {
+    const { id, category, name, spec, price, stock, label, emoji, image } = req.body;
+
+    await db.query(
+      'INSERT INTO products (id, category, name, spec, price, stock, label, emoji, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, category, name, spec, price, stock, label, emoji, image]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Product added successfully'
+    });
+
+  } catch (error) {
+    console.error('Add product error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to add product' 
+    });
+  }
+});
+
+// Update product
+app.put('/api/admin/products/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { category, name, spec, price, stock, label, emoji, image } = req.body;
+
+    await db.query(
+      'UPDATE products SET category = ?, name = ?, spec = ?, price = ?, stock = ?, label = ?, emoji = ?, image = ? WHERE id = ?',
+      [category, name, spec, price, stock, label, emoji, image, id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Product updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Update product error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update product' 
+    });
+  }
+});
+
+// Delete product
+app.delete('/api/admin/products/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await db.query('DELETE FROM products WHERE id = ?', [id]);
+
+    res.json({
+      success: true,
+      message: 'Product deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete product error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to delete product' 
+    });
+  }
+});
+
+// Get all customers
+app.get('/api/admin/customers', authenticateAdmin, async (req, res) => {
+  try {
+    const [customers] = await db.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.created_at,
+        COUNT(o.id) as order_count,
+        COALESCE(SUM(o.total), 0) as total_spent
+      FROM users u
+      LEFT JOIN orders o ON u.id = o.user_id
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+    `);
+
+    res.json({
+      success: true,
+      customers
+    });
+
+  } catch (error) {
+    console.error('Get customers error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch customers' 
+    });
+  }
+});
+
 /* ============================================================
    ORDERS ROUTES
 ============================================================ */
@@ -369,12 +731,26 @@ app.listen(PORT, () => {
 ║  Server running on: http://localhost:${PORT}           ║
 ║  Environment: ${process.env.NODE_ENV || 'development'}                      ║
 ║                                                        ║
-║  API Endpoints:                                        ║
+║  Customer API Endpoints:                               ║
 ║  • POST /api/register  - User registration            ║
 ║  • POST /api/login     - User login                   ║
 ║  • GET  /api/orders    - Get user orders              ║
 ║  • POST /api/orders    - Create order                 ║
 ║  • PATCH /api/orders/:id/cancel - Cancel order        ║
+║                                                        ║
+║  Admin API Endpoints:                                  ║
+║  • POST /api/admin/login - Admin login                ║
+║  • GET  /api/admin/stats - Dashboard stats            ║
+║  • GET  /api/admin/orders - All orders                ║
+║  • PATCH /api/admin/orders/:id/deliver - Deliver      ║
+║  • GET  /api/admin/products - All products            ║
+║  • POST /api/admin/products - Add product             ║
+║  • PUT  /api/admin/products/:id - Update product      ║
+║  • DELETE /api/admin/products/:id - Delete product    ║
+║  • GET  /api/admin/customers - All customers          ║
+║                                                        ║
+║  Admin Dashboard: http://localhost:${PORT}/admin-login.html  ║
+║  Default Admin: username=admin, password=admin123     ║
 ║                                                        ║
 ╚════════════════════════════════════════════════════════╝
   `);
