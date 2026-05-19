@@ -515,12 +515,14 @@ function renderCustomers(customers) {
 /* ============================================================
    INITIALIZATION
 ============================================================ */
-if (checkAdminAuth()) {
-  console.log('✅ Admin authenticated, loading dashboard...');
-  loadDashboard();
-} else {
-  console.log('❌ Admin not authenticated, redirecting...');
-}
+document.addEventListener('DOMContentLoaded', () => {
+  if (checkAdminAuth()) {
+    console.log('✅ Admin authenticated, loading dashboard...');
+    loadDashboard();
+  } else {
+    console.log('❌ Admin not authenticated, redirecting...');
+  }
+});
 
 // Add error handler for debugging
 window.addEventListener('error', (e) => {
