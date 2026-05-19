@@ -116,6 +116,10 @@ async function loadDashboard() {
   try {
     const token = localStorage.getItem('adminToken');
     
+    console.log('📊 Loading dashboard stats...');
+    console.log('Token:', token ? 'Present' : 'Missing');
+    console.log('API URL:', `${API_URL}/api/admin/stats`);
+    
     // Fetch stats
     const response = await fetch(`${API_URL}/api/admin/stats`, {
       headers: {
@@ -123,16 +127,24 @@ async function loadDashboard() {
       }
     });
     
+    console.log('Response status:', response.status);
+    
     const data = await response.json();
+    console.log('Response data:', data);
     
     if (data.success) {
       document.getElementById('totalOrders').textContent = data.stats.totalOrders;
       document.getElementById('totalRevenue').textContent = '₱' + data.stats.totalRevenue.toLocaleString();
       document.getElementById('pendingOrders').textContent = data.stats.pendingOrders;
       document.getElementById('totalProducts').textContent = data.stats.totalProducts;
+      console.log('✅ Dashboard loaded successfully');
+    } else {
+      console.error('❌ API returned success: false', data);
+      showModal('Error', 'Failed to load dashboard stats: ' + (data.message || 'Unknown error'), 'error');
     }
   } catch (error) {
-    console.error('Error loading dashboard:', error);
+    console.error('❌ Error loading dashboard:', error);
+    showModal('Error', 'Failed to connect to server. Please check your connection.', 'error');
   }
 }
 

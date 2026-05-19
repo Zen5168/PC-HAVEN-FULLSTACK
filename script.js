@@ -1091,9 +1091,6 @@ function updateUserSection() {
               </div>
             </div>
             <div class="user-dropdown-divider"></div>
-            <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); alert('Profile feature coming soon!')">
-              <i class="bi bi-person"></i> My Profile
-            </a>
             <a href="#" class="user-dropdown-item" onclick="event.preventDefault(); showMyOrders()">
               <i class="bi bi-box-seam"></i> My Orders
             </a>
@@ -1123,9 +1120,6 @@ function updateUserSection() {
           </div>
           <div class="mobile-menu-section">
             <h4>Account</h4>
-            <a href="#" class="mobile-nav-link" onclick="event.preventDefault(); alert('Profile feature coming soon!')">
-              <i class="bi bi-person"></i> My Profile
-            </a>
             <a href="#" class="mobile-nav-link" onclick="event.preventDefault(); showMyOrders()">
               <i class="bi bi-box-seam"></i> My Orders
             </a>
