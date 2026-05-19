@@ -227,6 +227,35 @@ const authenticateAdmin = (req, res, next) => {
    ADMIN ROUTES
 ============================================================ */
 
+// Test endpoint - Check if admin exists
+app.get('/api/admin/test', async (req, res) => {
+  try {
+    // Check database name
+    const [dbInfo] = await db.query('SELECT DATABASE() as current_db');
+    
+    // Check if admins table exists
+    const [tables] = await db.query('SHOW TABLES');
+    
+    // Get all admins
+    const [admins] = await db.query('SELECT id, username, email FROM admins');
+    
+    res.json({
+      success: true,
+      database: dbInfo[0].current_db,
+      tables: tables.map(t => Object.values(t)[0]),
+      adminCount: admins.length,
+      admins: admins
+    });
+  } catch (error) {
+    console.error('Test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: error.code
+    });
+  }
+});
+
 // Admin login
 app.post('/api/admin/login', [
   body('username').notEmpty().withMessage('Username or email is required'),
