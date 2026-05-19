@@ -339,7 +339,7 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
     const [orderStats] = await db.query(`
       SELECT 
         COUNT(*) as totalOrders,
-        SUM(total) as totalRevenue,
+        SUM(CASE WHEN status != 'Cancelled' THEN total ELSE 0 END) as totalRevenue,
         SUM(CASE WHEN status = 'Processing' THEN 1 ELSE 0 END) as pendingOrders
       FROM orders
     `);

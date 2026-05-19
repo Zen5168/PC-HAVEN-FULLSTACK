@@ -8,6 +8,66 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   ? 'http://localhost:3000'
   : '';
 
+// Custom Modal Functions
+function showModal(title, message, type = 'info') {
+  const modal = document.createElement('div');
+  modal.className = 'custom-modal-overlay';
+  
+  const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'info-circle';
+  const iconColor = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : 'var(--accent)';
+  
+  modal.innerHTML = `
+    <div class="custom-modal">
+      <div class="custom-modal-header">
+        <h3><i class="bi bi-${icon}" style="color: ${iconColor};"></i> ${title}</h3>
+      </div>
+      <div class="custom-modal-body">
+        <p>${message}</p>
+      </div>
+      <div class="custom-modal-footer">
+        <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove()">
+          <i class="bi bi-check-lg"></i> OK
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+function showConfirm(title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') {
+  const modal = document.createElement('div');
+  modal.className = 'custom-modal-overlay';
+  
+  const confirmId = 'confirm_' + Date.now();
+  
+  modal.innerHTML = `
+    <div class="custom-modal">
+      <div class="custom-modal-header">
+        <h3><i class="bi bi-question-circle" style="color: var(--accent);"></i> ${title}</h3>
+      </div>
+      <div class="custom-modal-body">
+        <p>${message}</p>
+      </div>
+      <div class="custom-modal-footer">
+        <button class="btn-modal-cancel" onclick="this.closest('.custom-modal-overlay').remove()">
+          <i class="bi bi-x-circle"></i> ${cancelText}
+        </button>
+        <button class="btn-modal-confirm" id="${confirmId}">
+          <i class="bi bi-check-circle"></i> ${confirmText}
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  document.getElementById(confirmId).addEventListener('click', () => {
+    modal.remove();
+    onConfirm();
+  });
+}
+
 // Check admin authentication
 function checkAdminAuth() {
   const adminToken = localStorage.getItem('adminToken');
@@ -146,59 +206,73 @@ function renderOrders(orders) {
 }
 
 async function deliverOrder(orderId) {
-  if (!confirm('Mark this order as delivered?')) return;
-  
-  try {
-    const token = localStorage.getItem('adminToken');
-    
-    const response = await fetch(`${API_URL}/api/admin/orders/${orderId}/deliver`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+  showConfirm(
+    'Mark as Delivered',
+    'Mark this order as delivered?',
+    async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        
+        const response = await fetch(`${API_URL}/api/admin/orders/${orderId}/deliver`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showModal('Success', 'Order marked as delivered!', 'success');
+          loadOrders();
+          loadDashboard(); // Refresh stats
+        } else {
+          showModal('Error', data.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error delivering order:', error);
+        showModal('Error', 'Failed to update order', 'error');
       }
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      alert('Order marked as delivered!');
-      loadOrders();
-    } else {
-      alert('Error: ' + data.message);
-    }
-  } catch (error) {
-    console.error('Error delivering order:', error);
-    alert('Failed to update order');
-  }
+    },
+    'Mark as Delivered',
+    'Cancel'
+  );
 }
 
 async function cancelOrder(orderId) {
-  if (!confirm('Cancel this order?')) return;
-  
-  try {
-    const token = localStorage.getItem('adminToken');
-    
-    const response = await fetch(`${API_URL}/api/admin/orders/${orderId}/cancel`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+  showConfirm(
+    'Cancel Order',
+    'Are you sure you want to cancel this order?',
+    async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        
+        const response = await fetch(`${API_URL}/api/admin/orders/${orderId}/cancel`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showModal('Success', 'Order cancelled!', 'success');
+          loadOrders();
+          loadDashboard(); // Refresh stats
+        } else {
+          showModal('Error', data.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error cancelling order:', error);
+        showModal('Error', 'Failed to cancel order', 'error');
       }
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      alert('Order cancelled!');
-      loadOrders();
-    } else {
-      alert('Error: ' + data.message);
-    }
-  } catch (error) {
-    console.error('Error cancelling order:', error);
-    alert('Failed to cancel order');
-  }
+    },
+    'Yes, Cancel Order',
+    'No, Keep Order'
+  );
 }
 
 /* ============================================================
@@ -331,43 +405,51 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
     const data = await response.json();
     
     if (data.success) {
-      alert(isEdit ? 'Product updated!' : 'Product added!');
+      showModal('Success', isEdit ? 'Product updated!' : 'Product added!', 'success');
       hideProductForm();
       loadProducts();
+      loadDashboard(); // Refresh stats
     } else {
-      alert('Error: ' + data.message);
+      showModal('Error', data.message, 'error');
     }
   } catch (error) {
     console.error('Error saving product:', error);
-    alert('Failed to save product');
+    showModal('Error', 'Failed to save product', 'error');
   }
 });
 
 async function deleteProduct(productId) {
-  if (!confirm('Delete this product?')) return;
-  
-  try {
-    const token = localStorage.getItem('adminToken');
-    
-    const response = await fetch(`${API_URL}/api/admin/products/${productId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
+  showConfirm(
+    'Delete Product',
+    'Are you sure you want to delete this product? This action cannot be undone.',
+    async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        
+        const response = await fetch(`${API_URL}/api/admin/products/${productId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showModal('Success', 'Product deleted!', 'success');
+          loadProducts();
+          loadDashboard(); // Refresh stats
+        } else {
+          showModal('Error', data.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        showModal('Error', 'Failed to delete product', 'error');
       }
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      alert('Product deleted!');
-      loadProducts();
-    } else {
-      alert('Error: ' + data.message);
-    }
-  } catch (error) {
-    console.error('Error deleting product:', error);
-    alert('Failed to delete product');
-  }
+    },
+    'Yes, Delete',
+    'Cancel'
+  );
 }
 
 /* ============================================================
@@ -434,5 +516,13 @@ function renderCustomers(customers) {
    INITIALIZATION
 ============================================================ */
 if (checkAdminAuth()) {
+  console.log('✅ Admin authenticated, loading dashboard...');
   loadDashboard();
+} else {
+  console.log('❌ Admin not authenticated, redirecting...');
 }
+
+// Add error handler for debugging
+window.addEventListener('error', (e) => {
+  console.error('JavaScript Error:', e.message, e.filename, e.lineno);
+});
