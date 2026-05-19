@@ -271,6 +271,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   
   try {
     // Try admin login first (check by username or email)
+    console.log('Attempting login with:', email);
+    
     const adminResponse = await fetch(`${API_URL}/admin/login`, {
       method: 'POST',
       headers: {
@@ -279,8 +281,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       body: JSON.stringify({ username: email, password })
     });
     
+    console.log('Admin login response status:', adminResponse.status);
+    
     if (adminResponse.ok) {
       const adminData = await adminResponse.json();
+      console.log('Admin login response:', adminData);
       
       if (adminData.success) {
         // Save admin session
@@ -295,9 +300,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         }, 1000);
         return;
       }
+    } else {
+      const adminError = await adminResponse.json();
+      console.log('Admin login failed:', adminError);
     }
     
     // If admin login failed, try customer login
+    console.log('Trying customer login...');
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {

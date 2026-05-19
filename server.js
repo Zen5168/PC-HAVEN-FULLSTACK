@@ -242,14 +242,19 @@ app.post('/api/admin/login', [
     }
 
     const { username, password } = req.body;
+    
+    console.log('🔐 Admin login attempt:', username);
 
     // Check if admin exists by username OR email
     const [admins] = await db.query(
       'SELECT id, username, email, password FROM admins WHERE username = ? OR email = ?',
       [username, username]
     );
+    
+    console.log('📊 Admins found:', admins.length);
 
     if (admins.length === 0) {
+      console.log('❌ No admin found with username/email:', username);
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid username/email or password' 
@@ -257,9 +262,14 @@ app.post('/api/admin/login', [
     }
 
     const admin = admins[0];
+    console.log('✅ Admin found:', admin.username, admin.email);
+    console.log('🔑 Password hash from DB:', admin.password.substring(0, 20) + '...');
+    
     const isPasswordValid = await bcrypt.compare(password, admin.password);
+    console.log('🔓 Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
+      console.log('❌ Invalid password for admin:', admin.username);
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid username/email or password' 
@@ -271,6 +281,8 @@ app.post('/api/admin/login', [
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+    
+    console.log('✅ Admin login successful:', admin.username);
 
     res.json({
       success: true,
@@ -284,7 +296,7 @@ app.post('/api/admin/login', [
     });
 
   } catch (error) {
-    console.error('Admin login error:', error);
+    console.error('❌ Admin login error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Server error' 
