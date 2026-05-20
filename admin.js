@@ -677,7 +677,31 @@ async function submitResponse(requestId) {
   const responseText = document.getElementById('adminResponseText').value.trim();
   
   if (!responseText) {
-    alert('Please enter a response');
+    // Show validation error modal
+    const errorModal = document.createElement('div');
+    errorModal.className = 'custom-modal-overlay';
+    errorModal.innerHTML = `
+      <div class="custom-modal">
+        <div class="custom-modal-header">
+          <h3><i class="bi bi-exclamation-triangle-fill text-warning"></i> Validation Error</h3>
+        </div>
+        <div class="custom-modal-body">
+          <p>Please enter a response before submitting.</p>
+        </div>
+        <div class="custom-modal-footer">
+          <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove()">
+            <i class="bi bi-check-lg"></i> OK
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(errorModal);
+    
+    errorModal.addEventListener('click', (e) => {
+      if (e.target === errorModal) {
+        errorModal.remove();
+      }
+    });
     return;
   }
   
@@ -701,13 +725,94 @@ async function submitResponse(requestId) {
     if (data.success) {
       document.querySelector('.custom-modal-overlay').remove();
       loadComponentRequests();
-      showToast('Response sent successfully', 'success');
+      
+      // Show success modal
+      const successModal = document.createElement('div');
+      successModal.className = 'custom-modal-overlay';
+      successModal.innerHTML = `
+        <div class="custom-modal">
+          <div class="custom-modal-header">
+            <h3><i class="bi bi-check-circle-fill text-success"></i> Success</h3>
+          </div>
+          <div class="custom-modal-body">
+            <p>Response sent successfully!</p>
+          </div>
+          <div class="custom-modal-footer">
+            <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove()">
+              <i class="bi bi-check-lg"></i> OK
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(successModal);
+      
+      successModal.addEventListener('click', (e) => {
+        if (e.target === successModal) {
+          successModal.remove();
+        }
+      });
+      
+      // Auto close after 2 seconds
+      setTimeout(() => {
+        if (document.body.contains(successModal)) {
+          successModal.remove();
+        }
+      }, 2000);
     } else {
-      alert(data.message || 'Failed to send response');
+      // Show error modal
+      const errorModal = document.createElement('div');
+      errorModal.className = 'custom-modal-overlay';
+      errorModal.innerHTML = `
+        <div class="custom-modal">
+          <div class="custom-modal-header">
+            <h3><i class="bi bi-exclamation-triangle-fill text-warning"></i> Error</h3>
+          </div>
+          <div class="custom-modal-body">
+            <p>${data.message || 'Failed to send response'}</p>
+          </div>
+          <div class="custom-modal-footer">
+            <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove()">
+              <i class="bi bi-check-lg"></i> OK
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(errorModal);
+      
+      errorModal.addEventListener('click', (e) => {
+        if (e.target === errorModal) {
+          errorModal.remove();
+        }
+      });
     }
   } catch (error) {
     console.error('Error sending response:', error);
-    alert('Failed to send response');
+    
+    // Show error modal
+    const errorModal = document.createElement('div');
+    errorModal.className = 'custom-modal-overlay';
+    errorModal.innerHTML = `
+      <div class="custom-modal">
+        <div class="custom-modal-header">
+          <h3><i class="bi bi-exclamation-triangle-fill text-warning"></i> Error</h3>
+        </div>
+        <div class="custom-modal-body">
+          <p>Failed to send response. Please try again.</p>
+        </div>
+        <div class="custom-modal-footer">
+          <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove()">
+            <i class="bi bi-check-lg"></i> OK
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(errorModal);
+    
+    errorModal.addEventListener('click', (e) => {
+      if (e.target === errorModal) {
+        errorModal.remove();
+      }
+    });
   }
 }
 

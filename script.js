@@ -708,92 +708,92 @@ const CartManager = {
     const modal = document.createElement('div');
     modal.className = 'custom-modal-overlay';
     modal.innerHTML = `
-      <div class="custom-modal" style="max-width: 600px;">
-        <div class="custom-modal-header">
-          <h3><i class="bi bi-geo-alt"></i> Delivery Information</h3>
+      <div class="custom-modal" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
+        <div class="custom-modal-header" style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
+          <h3 style="font-size: 1.2rem; margin: 0;"><i class="bi bi-geo-alt"></i> Delivery Information</h3>
         </div>
-        <div class="custom-modal-body">
+        <div class="custom-modal-body" style="padding: 20px;">
           <form id="deliveryForm">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Full Delivery Address <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold" style="font-size: 0.9rem;">Full Address <span class="text-danger">*</span></label>
               <textarea 
                 class="form-control" 
                 id="deliveryAddress" 
-                rows="3" 
+                rows="2" 
                 placeholder="House/Unit No., Street, Barangay"
                 required
-                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none;"
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none; font-size: 0.9rem;"
               ></textarea>
             </div>
             
             <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">City/Municipality <span class="text-danger">*</span></label>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold" style="font-size: 0.9rem;">City <span class="text-danger">*</span></label>
                 <input 
                   type="text" 
                   class="form-control" 
                   id="deliveryCity" 
                   placeholder="e.g., Quezon City"
                   required
-                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);"
+                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.9rem;"
                 />
               </div>
               
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Postal Code <span class="text-danger">*</span></label>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold" style="font-size: 0.9rem;">Postal <span class="text-danger">*</span></label>
                 <input 
                   type="text" 
                   class="form-control" 
                   id="deliveryPostalCode" 
-                  placeholder="e.g., 1100"
+                  placeholder="1100"
                   required
                   pattern="[0-9]{4}"
                   maxlength="4"
-                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);"
+                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.9rem;"
                 />
               </div>
             </div>
             
             <div class="mb-3">
-              <label class="form-label fw-semibold">Contact Phone <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold" style="font-size: 0.9rem;">Phone <span class="text-danger">*</span></label>
               <input 
                 type="tel" 
                 class="form-control" 
                 id="deliveryPhone" 
-                placeholder="e.g., 09171234567"
+                placeholder="09171234567"
                 required
                 pattern="[0-9]{11}"
                 maxlength="11"
-                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);"
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.9rem;"
               />
-              <small class="text-muted">11-digit mobile number</small>
+              <small class="text-muted" style="font-size: 0.75rem;">11-digit mobile number</small>
             </div>
             
             <div class="mb-3">
-              <label class="form-label fw-semibold">Delivery Notes (Optional)</label>
+              <label class="form-label fw-semibold" style="font-size: 0.9rem;">Notes (Optional)</label>
               <textarea 
                 class="form-control" 
                 id="deliveryNotes" 
                 rows="2" 
-                placeholder="Landmarks, special instructions, etc."
-                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none;"
+                placeholder="Landmarks, special instructions..."
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none; font-size: 0.9rem;"
               ></textarea>
             </div>
             
-            <div class="alert" style="background: var(--bg-muted); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 15px;">
-              <div class="d-flex justify-content-between mb-2">
-                <strong>Order Total:</strong>
-                <strong class="text-primary">₱${total.toLocaleString()}</strong>
+            <div class="alert" style="background: var(--bg-muted); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 12px; margin-bottom: 0;">
+              <div class="d-flex justify-content-between">
+                <strong style="font-size: 0.9rem;">Order Total:</strong>
+                <strong class="text-primary" style="font-size: 1rem;">₱${total.toLocaleString()}</strong>
               </div>
-              <small class="text-muted">Delivery fee will be calculated based on location</small>
+              <small class="text-muted" style="font-size: 0.75rem;">Delivery fee calculated at checkout</small>
             </div>
           </form>
         </div>
-        <div class="custom-modal-footer">
-          <button class="btn-modal-cancel" onclick="this.closest('.custom-modal-overlay').remove()">
+        <div class="custom-modal-footer" style="position: sticky; bottom: 0; background: var(--bg-card); z-index: 10; padding: 15px 20px;">
+          <button class="btn-modal-cancel" onclick="this.closest('.custom-modal-overlay').remove()" style="padding: 8px 16px; font-size: 0.9rem;">
             <i class="bi bi-x-lg"></i> Cancel
           </button>
-          <button class="btn-modal-confirm" onclick="CartManager.submitOrder()">
+          <button class="btn-modal-confirm" onclick="CartManager.submitOrder()" style="padding: 8px 16px; font-size: 0.9rem;">
             <i class="bi bi-check-circle"></i> Place Order
           </button>
         </div>
