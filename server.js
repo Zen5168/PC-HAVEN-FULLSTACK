@@ -420,12 +420,12 @@ app.patch('/api/admin/orders/:orderId/deliver', authenticateAdmin, async (req, r
   try {
     const { orderId } = req.params;
 
-    const [orders] = await db.query(
-      'SELECT id, status FROM orders WHERE order_id = ?',
+    const orders = await db.query(
+      'SELECT id, status FROM orders WHERE order_id = $1',
       [orderId]
     );
 
-    if (orders.length === 0) {
+    if (orders.rows.length === 0) {
       return res.status(404).json({ 
         success: false, 
         message: 'Order not found' 
@@ -433,7 +433,7 @@ app.patch('/api/admin/orders/:orderId/deliver', authenticateAdmin, async (req, r
     }
 
     await db.query(
-      'UPDATE orders SET status = ? WHERE order_id = ?',
+      'UPDATE orders SET status = $1 WHERE order_id = $2',
       ['Delivered', orderId]
     );
 
@@ -456,12 +456,12 @@ app.patch('/api/admin/orders/:orderId/cancel', authenticateAdmin, async (req, re
   try {
     const { orderId } = req.params;
 
-    const [orders] = await db.query(
-      'SELECT id, status FROM orders WHERE order_id = ?',
+    const orders = await db.query(
+      'SELECT id, status FROM orders WHERE order_id = $1',
       [orderId]
     );
 
-    if (orders.length === 0) {
+    if (orders.rows.length === 0) {
       return res.status(404).json({ 
         success: false, 
         message: 'Order not found' 
@@ -469,7 +469,7 @@ app.patch('/api/admin/orders/:orderId/cancel', authenticateAdmin, async (req, re
     }
 
     await db.query(
-      'UPDATE orders SET status = ?, cancelled_at = NOW() WHERE order_id = ?',
+      'UPDATE orders SET status = $1, cancelled_at = CURRENT_TIMESTAMP WHERE order_id = $2',
       ['Cancelled', orderId]
     );
 
@@ -490,11 +490,11 @@ app.patch('/api/admin/orders/:orderId/cancel', authenticateAdmin, async (req, re
 // Get all products
 app.get('/api/admin/products', authenticateAdmin, async (req, res) => {
   try {
-    const [products] = await db.query('SELECT * FROM products ORDER BY category, name');
+    const products = await db.query('SELECT * FROM products ORDER BY category, name');
 
     res.json({
       success: true,
-      products
+      products: products.rows
     });
 
   } catch (error) {
@@ -512,7 +512,7 @@ app.post('/api/admin/products', authenticateAdmin, async (req, res) => {
     const { id, category, name, spec, price, stock, label, emoji, image } = req.body;
 
     await db.query(
-      'INSERT INTO products (id, category, name, spec, price, stock, label, emoji, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO products (id, category, name, spec, price, stock, label, emoji, image) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
       [id, category, name, spec, price, stock, label, emoji, image]
     );
 
@@ -537,7 +537,7 @@ app.put('/api/admin/products/:id', authenticateAdmin, async (req, res) => {
     const { category, name, spec, price, stock, label, emoji, image } = req.body;
 
     await db.query(
-      'UPDATE products SET category = ?, name = ?, spec = ?, price = ?, stock = ?, label = ?, emoji = ?, image = ? WHERE id = ?',
+      'UPDATE products SET category = $1, name = $2, spec = $3, price = $4, stock = $5, label = $6, emoji = $7, image = $8 WHERE id = $9',
       [category, name, spec, price, stock, label, emoji, image, id]
     );
 
@@ -560,7 +560,7 @@ app.delete('/api/admin/products/:id', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
-    await db.query('DELETE FROM products WHERE id = ?', [id]);
+    await db.query('DELETE FROM products WHERE id = $1', [id]);
 
     res.json({
       success: true,
@@ -579,7 +579,7 @@ app.delete('/api/admin/products/:id', authenticateAdmin, async (req, res) => {
 // Get all customers
 app.get('/api/admin/customers', authenticateAdmin, async (req, res) => {
   try {
-    const [customers] = await db.query(`
+    const customers = await db.query(`
       SELECT 
         u.id,
         u.name,
@@ -589,13 +589,13 @@ app.get('/api/admin/customers', authenticateAdmin, async (req, res) => {
         COALESCE(SUM(o.total), 0) as total_spent
       FROM users u
       LEFT JOIN orders o ON u.id = o.user_id
-      GROUP BY u.id
+      GROUP BY u.id, u.name, u.email, u.created_at
       ORDER BY u.created_at DESC
     `);
 
     res.json({
       success: true,
-      customers
+      customers: customers.rows
     });
 
   } catch (error) {
@@ -616,7 +616,7 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const [orders] = await db.query(`
+    const orders = await db.query(`
       SELECT 
         o.id,
         o.order_id,
@@ -625,13 +625,13 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
         o.created_at,
         o.cancelled_at
       FROM orders o
-      WHERE o.user_id = ?
+      WHERE o.user_id = $1
       ORDER BY o.created_at DESC
     `, [userId]);
 
     // Get items for each order
-    for (let order of orders) {
-      const [items] = await db.query(`
+    for (let order of orders.rows) {
+      const items = await db.query(`
         SELECT 
           product_id as id,
           product_name as name,
@@ -639,16 +639,16 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
           quantity as qty,
           emoji
         FROM order_items
-        WHERE order_id = ?
+        WHERE order_id = $1
       `, [order.id]);
       
-      order.items = items;
+      order.items = items.rows;
       order.date = order.created_at;
     }
 
     res.json({
       success: true,
-      orders
+      orders: orders.rows
     });
 
   } catch (error) {
@@ -676,17 +676,17 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
     const orderId = 'ORD-' + Date.now();
 
     // Insert order
-    const [orderResult] = await db.query(
-      'INSERT INTO orders (user_id, order_id, total, status) VALUES (?, ?, ?, ?)',
+    const orderResult = await db.query(
+      'INSERT INTO orders (user_id, order_id, total, status) VALUES ($1, $2, $3, $4) RETURNING id',
       [userId, orderId, total, 'Processing']
     );
 
-    const orderDbId = orderResult.insertId;
+    const orderDbId = orderResult.rows[0].id;
 
     // Insert order items
     for (let item of items) {
       await db.query(
-        'INSERT INTO order_items (order_id, product_id, product_name, price, quantity, emoji) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO order_items (order_id, product_id, product_name, price, quantity, emoji) VALUES ($1, $2, $3, $4, $5, $6)',
         [orderDbId, item.id, item.name, item.price, item.qty, item.emoji || '']
       );
     }
@@ -717,19 +717,19 @@ app.patch('/api/orders/:orderId/cancel', authenticateToken, async (req, res) => 
     const { orderId } = req.params;
 
     // Check if order exists and belongs to user
-    const [orders] = await db.query(
-      'SELECT id, status FROM orders WHERE order_id = ? AND user_id = ?',
+    const orders = await db.query(
+      'SELECT id, status FROM orders WHERE order_id = $1 AND user_id = $2',
       [orderId, userId]
     );
 
-    if (orders.length === 0) {
+    if (orders.rows.length === 0) {
       return res.status(404).json({ 
         success: false, 
         message: 'Order not found' 
       });
     }
 
-    const order = orders[0];
+    const order = orders.rows[0];
 
     if (order.status === 'Cancelled') {
       return res.status(400).json({ 
@@ -747,7 +747,7 @@ app.patch('/api/orders/:orderId/cancel', authenticateToken, async (req, res) => 
 
     // Update order status
     await db.query(
-      'UPDATE orders SET status = ?, cancelled_at = NOW() WHERE id = ?',
+      'UPDATE orders SET status = $1, cancelled_at = CURRENT_TIMESTAMP WHERE id = $2',
       ['Cancelled', order.id]
     );
 
