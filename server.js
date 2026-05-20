@@ -1,6 +1,6 @@
 /* ============================================================
    PC HAVEN BACKEND SERVER
-   Node.js + Express + MySQL + bcrypt
+   Node.js + Express + PostgreSQL + bcrypt
 ============================================================ */
 const express = require('express');
 const cors = require('cors');
@@ -51,12 +51,12 @@ app.post('/api/register', [
     const { name, email, password } = req.body;
 
     // Check if user already exists
-    const [existingUsers] = await db.query(
-      'SELECT id FROM users WHERE email = ?',
+    const existingUsers = await db.query(
+      'SELECT id FROM users WHERE email = $1',
       [email]
     );
 
-    if (existingUsers.length > 0) {
+    if (existingUsers.rows.length > 0) {
       return res.status(400).json({ 
         success: false, 
         message: 'An account with this email already exists' 
@@ -68,12 +68,12 @@ app.post('/api/register', [
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Insert user
-    const [result] = await db.query(
-      'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
+    const result = await db.query(
+      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id',
       [name, email, hashedPassword]
     );
 
-    const userId = result.insertId;
+    const userId = result.rows[0].id;
 
     // Generate JWT token
     const token = jwt.sign(
@@ -121,19 +121,19 @@ app.post('/api/login', [
     const { email, password } = req.body;
 
     // Find user
-    const [users] = await db.query(
-      'SELECT id, name, email, password FROM users WHERE email = ?',
+    const users = await db.query(
+      'SELECT id, name, email, password FROM users WHERE email = $1',
       [email]
     );
 
-    if (users.length === 0) {
+    if (users.rows.length === 0) {
       return res.status(401).json({ 
         success: false, 
         message: 'No account found with this email. Please register first.' 
       });
     }
 
-    const user = users[0];
+    const user = users.rows[0];
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -231,20 +231,24 @@ const authenticateAdmin = (req, res, next) => {
 app.get('/api/admin/test', async (req, res) => {
   try {
     // Check database name
-    const [dbInfo] = await db.query('SELECT DATABASE() as current_db');
+    const dbInfo = await db.query('SELECT current_database()');
     
     // Check if admins table exists
-    const [tables] = await db.query('SHOW TABLES');
+    const tables = await db.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
     
     // Get all admins
-    const [admins] = await db.query('SELECT id, username, email FROM admins');
+    const admins = await db.query('SELECT id, username, email FROM admins');
     
     res.json({
       success: true,
-      database: dbInfo[0].current_db,
-      tables: tables.map(t => Object.values(t)[0]),
-      adminCount: admins.length,
-      admins: admins
+      database: dbInfo.rows[0].current_database,
+      tables: tables.rows.map(t => t.table_name),
+      adminCount: admins.rows.length,
+      admins: admins.rows
     });
   } catch (error) {
     console.error('Test error:', error);
@@ -275,14 +279,14 @@ app.post('/api/admin/login', [
     console.log('🔐 Admin login attempt:', username);
 
     // Check if admin exists by username OR email
-    const [admins] = await db.query(
-      'SELECT id, username, email, password FROM admins WHERE username = ? OR email = ?',
-      [username, username]
+    const admins = await db.query(
+      'SELECT id, username, email, password FROM admins WHERE username = $1 OR email = $1',
+      [username]
     );
     
-    console.log('📊 Admins found:', admins.length);
+    console.log('📊 Admins found:', admins.rows.length);
 
-    if (admins.length === 0) {
+    if (admins.rows.length === 0) {
       console.log('❌ No admin found with username/email:', username);
       return res.status(401).json({ 
         success: false, 
@@ -290,7 +294,7 @@ app.post('/api/admin/login', [
       });
     }
 
-    const admin = admins[0];
+    const admin = admins.rows[0];
     console.log('✅ Admin found:', admin.username, admin.email);
     console.log('🔑 Password hash from DB:', admin.password.substring(0, 20) + '...');
     
@@ -336,23 +340,23 @@ app.post('/api/admin/login', [
 // Get dashboard stats
 app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
   try {
-    const [orderStats] = await db.query(`
+    const orderStats = await db.query(`
       SELECT 
-        COUNT(*) as totalOrders,
-        SUM(CASE WHEN status != 'Cancelled' THEN total ELSE 0 END) as totalRevenue,
-        SUM(CASE WHEN status = 'Processing' THEN 1 ELSE 0 END) as pendingOrders
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN status != 'Cancelled' THEN total ELSE 0 END) as total_revenue,
+        SUM(CASE WHEN status = 'Processing' THEN 1 ELSE 0 END) as pending_orders
       FROM orders
     `);
 
-    const [productStats] = await db.query('SELECT COUNT(*) as totalProducts FROM products');
+    const productStats = await db.query('SELECT COUNT(*) as total_products FROM products');
 
     res.json({
       success: true,
       stats: {
-        totalOrders: orderStats[0].totalOrders,
-        totalRevenue: parseFloat(orderStats[0].totalRevenue || 0),
-        pendingOrders: orderStats[0].pendingOrders,
-        totalProducts: productStats[0].totalProducts
+        totalOrders: parseInt(orderStats.rows[0].total_orders),
+        totalRevenue: parseFloat(orderStats.rows[0].total_revenue || 0),
+        pendingOrders: parseInt(orderStats.rows[0].pending_orders),
+        totalProducts: parseInt(productStats.rows[0].total_products)
       }
     });
 
@@ -368,7 +372,7 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
 // Get all orders
 app.get('/api/admin/orders', authenticateAdmin, async (req, res) => {
   try {
-    const [orders] = await db.query(`
+    const orders = await db.query(`
       SELECT 
         o.id,
         o.order_id,
@@ -383,23 +387,23 @@ app.get('/api/admin/orders', authenticateAdmin, async (req, res) => {
       ORDER BY o.created_at DESC
     `);
 
-    for (let order of orders) {
-      const [items] = await db.query(`
+    for (let order of orders.rows) {
+      const items = await db.query(`
         SELECT 
           product_id,
           product_name,
           price,
           quantity
         FROM order_items
-        WHERE order_id = ?
+        WHERE order_id = $1
       `, [order.id]);
       
-      order.items = items;
+      order.items = items.rows;
     }
 
     res.json({
       success: true,
-      orders
+      orders: orders.rows
     });
 
   } catch (error) {

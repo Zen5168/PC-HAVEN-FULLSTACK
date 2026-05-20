@@ -1,37 +1,34 @@
 /* ============================================================
-   DATABASE CONNECTION (MySQL)
+   DATABASE CONNECTION (PostgreSQL)
 ============================================================ */
-const mysql = require('mysql2');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 // Create connection pool
-// Railway uses MYSQLHOST, MYSQLUSER, etc.
-// Local development uses DB_HOST, DB_USER, etc.
-const pool = mysql.createPool({
-  host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
-  user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
-  password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || 'password',
-  database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'pchaven_db',
-  port: parseInt(process.env.MYSQLPORT || process.env.DB_PORT || '3306'),
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0
+// Render provides DATABASE_URL
+// Local development uses individual variables
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
-// Get promise-based pool
-const promisePool = pool.promise();
-
 // Test connection
-pool.getConnection((err, connection) => {
+pool.connect((err, client, release) => {
   if (err) {
     console.error('❌ Database connection failed:', err.message);
-    console.error('Please check your .env file and ensure MySQL is running');
+    console.error('Please check your .env file and ensure PostgreSQL is running');
     return;
   }
   console.log('✅ Database connected successfully');
-  connection.release();
+  release();
 });
 
-module.exports = promisePool;
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('❌ Unexpected database error:', err);
+});
+
+module.exports = pool;
