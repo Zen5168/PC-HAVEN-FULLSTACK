@@ -343,7 +343,7 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
     const orderStats = await db.query(`
       SELECT 
         COUNT(*) as total_orders,
-        SUM(CASE WHEN status != 'Cancelled' THEN total ELSE 0 END) as total_revenue,
+        SUM(CASE WHEN status = 'Delivered' THEN total ELSE 0 END) as total_revenue,
         SUM(CASE WHEN status = 'Processing' THEN 1 ELSE 0 END) as pending_orders
       FROM orders
     `);
@@ -807,6 +807,153 @@ app.get('/api/products/category/:category', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch products' 
+    });
+  }
+});
+
+/* ============================================================
+   COMPONENT REQUESTS ROUTES
+============================================================ */
+
+// Submit component request (User)
+app.post('/api/component-requests', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { message } = req.body;
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Request message cannot be empty' 
+      });
+    }
+
+    if (message.length > 500) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Request message is too long (max 500 characters)' 
+      });
+    }
+
+    await db.query(
+      'INSERT INTO component_requests (user_id, request_message) VALUES ($1, $2)',
+      [userId, message.trim()]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Component request submitted successfully'
+    });
+
+  } catch (error) {
+    console.error('Submit component request error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to submit request' 
+    });
+  }
+});
+
+// Get user's component requests
+app.get('/api/component-requests', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const requests = await db.query(`
+      SELECT 
+        id,
+        request_message,
+        status,
+        admin_response,
+        created_at,
+        updated_at
+      FROM component_requests
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+    `, [userId]);
+
+    res.json({
+      success: true,
+      requests: requests.rows
+    });
+
+  } catch (error) {
+    console.error('Get component requests error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch requests' 
+    });
+  }
+});
+
+// Get all component requests (Admin)
+app.get('/api/admin/component-requests', authenticateAdmin, async (req, res) => {
+  try {
+    const requests = await db.query(`
+      SELECT 
+        cr.id,
+        cr.request_message,
+        cr.status,
+        cr.admin_response,
+        cr.created_at,
+        cr.updated_at,
+        u.name as user_name,
+        u.email as user_email
+      FROM component_requests cr
+      JOIN users u ON cr.user_id = u.id
+      ORDER BY 
+        CASE cr.status 
+          WHEN 'Pending' THEN 1 
+          WHEN 'Reviewed' THEN 2 
+          WHEN 'Fulfilled' THEN 3 
+          WHEN 'Rejected' THEN 4 
+        END,
+        cr.created_at DESC
+    `);
+
+    res.json({
+      success: true,
+      requests: requests.rows
+    });
+
+  } catch (error) {
+    console.error('Get all component requests error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch requests' 
+    });
+  }
+});
+
+// Update component request status (Admin)
+app.patch('/api/admin/component-requests/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, admin_response } = req.body;
+
+    const validStatuses = ['Pending', 'Reviewed', 'Fulfilled', 'Rejected'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid status' 
+      });
+    }
+
+    await db.query(
+      'UPDATE component_requests SET status = $1, admin_response = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+      [status, admin_response || null, id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Request updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Update component request error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update request' 
     });
   }
 });

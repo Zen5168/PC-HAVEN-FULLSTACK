@@ -1021,6 +1021,151 @@ function handleBookingSubmit() {
   }, 400);
 }
 
+/* ============================================================
+   COMPONENT REQUEST FUNCTIONS
+============================================================ */
+
+function openComponentRequestModal() {
+  const modalEl = document.getElementById('componentRequestModal');
+  if (!modalEl) return;
+  
+  const bsModal = new bootstrap.Modal(modalEl);
+  bsModal.show();
+  
+  // Load user's requests
+  loadMyComponentRequests();
+  
+  // Setup character counter
+  const textarea = document.getElementById('componentRequestMessage');
+  const charCount = document.getElementById('charCount');
+  if (textarea && charCount) {
+    textarea.addEventListener('input', () => {
+      charCount.textContent = textarea.value.length;
+    });
+  }
+}
+
+async function handleComponentRequest() {
+  const textarea = document.getElementById('componentRequestMessage');
+  const message = textarea.value.trim();
+  
+  if (!message) {
+    ToastSystem.trigger('Please enter a component request', '⚠️');
+    return;
+  }
+  
+  // Get session token
+  const session = localStorage.getItem('pchaven_session');
+  if (!session) {
+    ToastSystem.trigger('Please login to submit a request', '⚠️');
+    return;
+  }
+  
+  const user = JSON.parse(session);
+  const token = user.token;
+  
+  // Get API URL
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000/api'
+    : `${window.location.protocol}//${window.location.host}/api`;
+  
+  try {
+    const response = await fetch(`${API_URL}/component-requests`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ message })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      ToastSystem.trigger('Component request submitted successfully! 🎯', '✅');
+      textarea.value = '';
+      document.getElementById('charCount').textContent = '0';
+      
+      // Reload requests list
+      loadMyComponentRequests();
+    } else {
+      ToastSystem.trigger(data.message || 'Failed to submit request', '❌');
+    }
+  } catch (error) {
+    console.error('Component request error:', error);
+    ToastSystem.trigger('Failed to submit request. Please try again.', '❌');
+  }
+}
+
+async function loadMyComponentRequests() {
+  const container = document.getElementById('myRequestsList');
+  if (!container) return;
+  
+  // Get session token
+  const session = localStorage.getItem('pchaven_session');
+  if (!session) {
+    container.innerHTML = '<div class="text-center text-muted py-3"><small>Please login to view requests</small></div>';
+    return;
+  }
+  
+  const user = JSON.parse(session);
+  const token = user.token;
+  
+  // Get API URL
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000/api'
+    : `${window.location.protocol}//${window.location.host}/api`;
+  
+  try {
+    const response = await fetch(`${API_URL}/component-requests`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success && data.requests.length > 0) {
+      container.innerHTML = data.requests.map(req => {
+        const statusColors = {
+          'Pending': 'warning',
+          'Reviewed': 'info',
+          'Fulfilled': 'success',
+          'Rejected': 'danger'
+        };
+        const statusColor = statusColors[req.status] || 'secondary';
+        const date = new Date(req.created_at).toLocaleDateString();
+        
+        return `
+          <div class="request-item mb-3 p-3" style="background: var(--bg-muted); border-radius: 8px; border-left: 3px solid var(--accent);">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <span class="badge bg-${statusColor}" style="font-size: 0.7rem;">${req.status}</span>
+              <small class="text-muted">${date}</small>
+            </div>
+            <p class="mb-2" style="font-size: 0.9rem; color: var(--text-primary);">${req.request_message}</p>
+            ${req.admin_response ? `
+              <div class="mt-2 pt-2" style="border-top: 1px solid var(--border);">
+                <small class="text-secondary d-block mb-1"><i class="bi bi-reply"></i> Admin Response:</small>
+                <small style="color: var(--text-primary);">${req.admin_response}</small>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    } else {
+      container.innerHTML = `
+        <div class="text-center text-muted py-3">
+          <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+          <small>No requests yet</small>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Load requests error:', error);
+    container.innerHTML = '<div class="text-center text-danger py-3"><small>Failed to load requests</small></div>';
+  }
+}
+
 // Global Ticker Loop initializer 
 function initTickerSystem() {
   const element = document.getElementById('ticker-content');

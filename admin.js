@@ -107,6 +107,7 @@ function showSection(section) {
   if (section === 'orders') loadOrders();
   if (section === 'products') loadProducts();
   if (section === 'customers') loadCustomers();
+  if (section === 'requests') loadComponentRequests();
 }
 
 /* ============================================================
@@ -522,6 +523,215 @@ function renderCustomers(customers) {
       </tbody>
     </table>
   `;
+}
+
+/* ============================================================
+   COMPONENT REQUESTS MANAGEMENT
+============================================================ */
+async function loadComponentRequests() {
+  try {
+    const token = localStorage.getItem('adminToken');
+    
+    const response = await fetch(`${API_URL}/api/admin/component-requests`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      renderComponentRequests(data.requests);
+    }
+  } catch (error) {
+    console.error('Error loading component requests:', error);
+    document.getElementById('requestsList').innerHTML = '<p class="text-danger">Failed to load requests</p>';
+  }
+}
+
+function renderComponentRequests(requests) {
+  const container = document.getElementById('requestsList');
+  
+  if (requests.length === 0) {
+    container.innerHTML = '<p class="text-muted">No component requests found</p>';
+    return;
+  }
+  
+  const statusColors = {
+    'Pending': 'warning',
+    'Reviewed': 'info',
+    'Fulfilled': 'success',
+    'Rejected': 'danger'
+  };
+  
+  container.innerHTML = `
+    <div class="requests-grid">
+      ${requests.map(req => {
+        const statusColor = statusColors[req.status] || 'secondary';
+        const date = new Date(req.created_at).toLocaleDateString();
+        
+        return `
+          <div class="request-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <h6 class="mb-1" style="color: var(--text-primary);">${req.user_name}</h6>
+                <small class="text-muted">${req.user_email}</small>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-${statusColor} mb-2">${req.status}</span>
+                <br>
+                <small class="text-muted">${date}</small>
+              </div>
+            </div>
+            
+            <div class="mb-3 p-3" style="background: var(--bg-muted); border-radius: 6px; border-left: 3px solid var(--accent);">
+              <small class="text-secondary d-block mb-1"><i class="bi bi-chat-left-text"></i> Request:</small>
+              <p class="mb-0" style="color: var(--text-primary);">${req.request_message}</p>
+            </div>
+            
+            ${req.admin_response ? `
+              <div class="mb-3 p-3" style="background: var(--bg-muted); border-radius: 6px; border-left: 3px solid #28a745;">
+                <small class="text-secondary d-block mb-1"><i class="bi bi-reply"></i> Your Response:</small>
+                <p class="mb-0" style="color: var(--text-primary);">${req.admin_response}</p>
+              </div>
+            ` : ''}
+            
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-sm btn-primary" onclick="respondToRequest(${req.id}, '${req.user_name}', '${req.request_message.replace(/'/g, "\\'")}')">
+                <i class="bi bi-reply"></i> Respond
+              </button>
+              ${req.status !== 'Fulfilled' ? `
+                <button class="btn btn-sm btn-success" onclick="updateRequestStatus(${req.id}, 'Fulfilled')">
+                  <i class="bi bi-check-circle"></i> Mark Fulfilled
+                </button>
+              ` : ''}
+              ${req.status !== 'Rejected' ? `
+                <button class="btn btn-sm btn-danger" onclick="updateRequestStatus(${req.id}, 'Rejected')">
+                  <i class="bi bi-x-circle"></i> Reject
+                </button>
+              ` : ''}
+              ${req.status !== 'Reviewed' ? `
+                <button class="btn btn-sm btn-info" onclick="updateRequestStatus(${req.id}, 'Reviewed')">
+                  <i class="bi bi-eye"></i> Mark Reviewed
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function respondToRequest(requestId, userName, requestMessage) {
+  const modal = document.createElement('div');
+  modal.className = 'custom-modal-overlay';
+  modal.innerHTML = `
+    <div class="custom-modal">
+      <div class="custom-modal-header">
+        <h3><i class="bi bi-reply"></i> Respond to ${userName}</h3>
+      </div>
+      <div class="custom-modal-body">
+        <div class="mb-3 p-3" style="background: var(--bg-muted); border-radius: 6px;">
+          <small class="text-secondary d-block mb-1">Request:</small>
+          <p class="mb-0">${requestMessage}</p>
+        </div>
+        <label class="form-label">Your Response:</label>
+        <textarea 
+          id="adminResponseText" 
+          class="form-control" 
+          rows="4" 
+          placeholder="Enter your response to the customer..."
+          style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);"
+        ></textarea>
+      </div>
+      <div class="custom-modal-footer">
+        <button class="btn-modal-cancel" onclick="this.closest('.custom-modal-overlay').remove()">
+          <i class="bi bi-x-lg"></i> Cancel
+        </button>
+        <button class="btn-modal-confirm" onclick="submitResponse(${requestId})">
+          <i class="bi bi-send"></i> Send Response
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  // Close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+async function submitResponse(requestId) {
+  const responseText = document.getElementById('adminResponseText').value.trim();
+  
+  if (!responseText) {
+    alert('Please enter a response');
+    return;
+  }
+  
+  try {
+    const token = localStorage.getItem('adminToken');
+    
+    const response = await fetch(`${API_URL}/api/admin/component-requests/${requestId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        status: 'Reviewed',
+        admin_response: responseText
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      document.querySelector('.custom-modal-overlay').remove();
+      loadComponentRequests();
+      showToast('Response sent successfully', 'success');
+    } else {
+      alert(data.message || 'Failed to send response');
+    }
+  } catch (error) {
+    console.error('Error sending response:', error);
+    alert('Failed to send response');
+  }
+}
+
+async function updateRequestStatus(requestId, status) {
+  if (!confirm(`Are you sure you want to mark this request as ${status}?`)) {
+    return;
+  }
+  
+  try {
+    const token = localStorage.getItem('adminToken');
+    
+    const response = await fetch(`${API_URL}/api/admin/component-requests/${requestId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      loadComponentRequests();
+      showToast(`Request marked as ${status}`, 'success');
+    } else {
+      alert(data.message || 'Failed to update status');
+    }
+  } catch (error) {
+    console.error('Error updating status:', error);
+    alert('Failed to update status');
+  }
 }
 
 /* ============================================================
