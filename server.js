@@ -766,6 +766,52 @@ app.patch('/api/orders/:orderId/cancel', authenticateToken, async (req, res) => 
 });
 
 /* ============================================================
+   PUBLIC PRODUCTS ROUTES (No authentication required)
+============================================================ */
+
+// Get all products for frontend
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await db.query('SELECT * FROM products WHERE stock > 0 ORDER BY category, name');
+
+    res.json({
+      success: true,
+      products: products.rows
+    });
+
+  } catch (error) {
+    console.error('Get products error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch products' 
+    });
+  }
+});
+
+// Get products by category
+app.get('/api/products/category/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const products = await db.query(
+      'SELECT * FROM products WHERE category = $1 AND stock > 0 ORDER BY name',
+      [category]
+    );
+
+    res.json({
+      success: true,
+      products: products.rows
+    });
+
+  } catch (error) {
+    console.error('Get products by category error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch products' 
+    });
+  }
+});
+
+/* ============================================================
    SERVER START
 ============================================================ */
 app.listen(PORT, () => {

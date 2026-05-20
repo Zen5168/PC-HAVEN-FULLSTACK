@@ -65,15 +65,33 @@ const EMBEDDED_INVENTORY = {
 // Load inventory from JSON file or use embedded data
 async function loadInventory() {
   try {
-    const response = await fetch('inventory.json');
+    // Try to fetch from API first
+    const response = await fetch('/api/products');
     const data = await response.json();
-    CATEGORIES_DB = data.categories;
-    PRODUCTS_DB = data.products;
-    console.log('✅ Inventory loaded from JSON file');
+    
+    if (data.success && data.products) {
+      // Map database products to frontend format
+      PRODUCTS_DB = data.products.map(p => ({
+        id: p.id,
+        cat: p.category,
+        name: p.name,
+        spec: p.spec,
+        price: parseFloat(p.price),
+        stock: p.stock,
+        label: p.label,
+        emoji: p.emoji,
+        platform: p.platform,
+        ramType: p.ram_type,
+        image: p.image
+      }));
+      
+      console.log('✅ Inventory loaded from database:', PRODUCTS_DB.length, 'products');
+    } else {
+      throw new Error('Invalid API response');
+    }
   } catch (error) {
-    console.warn('⚠️ Could not load inventory.json, using embedded data:', error.message);
+    console.warn('⚠️ Could not load from API, using embedded data:', error.message);
     // Fallback to embedded data
-    CATEGORIES_DB = EMBEDDED_INVENTORY.categories;
     PRODUCTS_DB = EMBEDDED_INVENTORY.products;
   }
   
