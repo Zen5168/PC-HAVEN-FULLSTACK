@@ -708,92 +708,92 @@ const CartManager = {
     const modal = document.createElement('div');
     modal.className = 'custom-modal-overlay';
     modal.innerHTML = `
-      <div class="custom-modal" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
-        <div class="custom-modal-header" style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
-          <h3 style="font-size: 1.2rem; margin: 0;"><i class="bi bi-geo-alt"></i> Delivery Information</h3>
+      <div class="custom-modal" style="max-width: 420px; max-height: 85vh; overflow-y: auto;">
+        <div class="custom-modal-header" style="position: sticky; top: 0; background: var(--bg-card); z-index: 10; padding: 15px 18px;">
+          <h3 style="font-size: 1.1rem; margin: 0;"><i class="bi bi-geo-alt"></i> Delivery Info</h3>
         </div>
-        <div class="custom-modal-body" style="padding: 20px;">
+        <div class="custom-modal-body" style="padding: 15px 18px;">
           <form id="deliveryForm">
-            <div class="mb-3">
-              <label class="form-label fw-semibold" style="font-size: 0.9rem;">Full Address <span class="text-danger">*</span></label>
+            <div class="mb-2">
+              <label class="form-label fw-semibold" style="font-size: 0.85rem; margin-bottom: 0.3rem;">Address <span class="text-danger">*</span></label>
               <textarea 
-                class="form-control" 
+                class="form-control form-control-sm" 
                 id="deliveryAddress" 
                 rows="2" 
                 placeholder="House/Unit No., Street, Barangay"
                 required
-                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none; font-size: 0.9rem;"
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none; font-size: 0.85rem;"
               ></textarea>
             </div>
             
             <div class="row">
-              <div class="col-6 mb-3">
-                <label class="form-label fw-semibold" style="font-size: 0.9rem;">City <span class="text-danger">*</span></label>
+              <div class="col-6 mb-2">
+                <label class="form-label fw-semibold" style="font-size: 0.85rem; margin-bottom: 0.3rem;">City <span class="text-danger">*</span></label>
                 <input 
                   type="text" 
-                  class="form-control" 
+                  class="form-control form-control-sm" 
                   id="deliveryCity" 
-                  placeholder="e.g., Quezon City"
+                  placeholder="Quezon City"
                   required
-                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.9rem;"
+                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.85rem;"
                 />
               </div>
               
-              <div class="col-6 mb-3">
-                <label class="form-label fw-semibold" style="font-size: 0.9rem;">Postal <span class="text-danger">*</span></label>
+              <div class="col-6 mb-2">
+                <label class="form-label fw-semibold" style="font-size: 0.85rem; margin-bottom: 0.3rem;">Postal <span class="text-danger">*</span></label>
                 <input 
                   type="text" 
-                  class="form-control" 
+                  class="form-control form-control-sm" 
                   id="deliveryPostalCode" 
                   placeholder="1100"
                   required
                   pattern="[0-9]{4}"
                   maxlength="4"
-                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.9rem;"
+                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.85rem;"
                 />
               </div>
             </div>
             
-            <div class="mb-3">
-              <label class="form-label fw-semibold" style="font-size: 0.9rem;">Phone <span class="text-danger">*</span></label>
+            <div class="mb-2">
+              <label class="form-label fw-semibold" style="font-size: 0.85rem; margin-bottom: 0.3rem;">Phone <span class="text-danger">*</span></label>
               <input 
                 type="tel" 
-                class="form-control" 
+                class="form-control form-control-sm" 
                 id="deliveryPhone" 
                 placeholder="09171234567"
                 required
                 pattern="[0-9]{11}"
                 maxlength="11"
-                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.9rem;"
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); font-size: 0.85rem;"
               />
-              <small class="text-muted" style="font-size: 0.75rem;">11-digit mobile number</small>
+              <small class="text-muted" style="font-size: 0.7rem;">11-digit number</small>
             </div>
             
-            <div class="mb-3">
-              <label class="form-label fw-semibold" style="font-size: 0.9rem;">Notes (Optional)</label>
+            <div class="mb-2">
+              <label class="form-label fw-semibold" style="font-size: 0.85rem; margin-bottom: 0.3rem;">Notes (Optional)</label>
               <textarea 
-                class="form-control" 
+                class="form-control form-control-sm" 
                 id="deliveryNotes" 
                 rows="2" 
-                placeholder="Landmarks, special instructions..."
-                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none; font-size: 0.9rem;"
+                placeholder="Landmarks, instructions..."
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none; font-size: 0.85rem;"
               ></textarea>
             </div>
             
-            <div class="alert" style="background: var(--bg-muted); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 12px; margin-bottom: 0;">
-              <div class="d-flex justify-content-between">
-                <strong style="font-size: 0.9rem;">Order Total:</strong>
-                <strong class="text-primary" style="font-size: 1rem;">₱${total.toLocaleString()}</strong>
+            <div class="alert" style="background: var(--bg-muted); border: 1px solid var(--border); color: var(--text-primary); border-radius: 6px; padding: 10px; margin-bottom: 0;">
+              <div class="d-flex justify-content-between align-items-center">
+                <strong style="font-size: 0.85rem;">Total:</strong>
+                <strong class="text-primary" style="font-size: 1.1rem;">₱${total.toLocaleString()}</strong>
               </div>
-              <small class="text-muted" style="font-size: 0.75rem;">Delivery fee calculated at checkout</small>
+              <small class="text-muted" style="font-size: 0.7rem;">+ delivery fee</small>
             </div>
           </form>
         </div>
-        <div class="custom-modal-footer" style="position: sticky; bottom: 0; background: var(--bg-card); z-index: 10; padding: 15px 20px;">
-          <button class="btn-modal-cancel" onclick="this.closest('.custom-modal-overlay').remove()" style="padding: 8px 16px; font-size: 0.9rem;">
+        <div class="custom-modal-footer" style="position: sticky; bottom: 0; background: var(--bg-card); z-index: 10; padding: 12px 18px; gap: 8px;">
+          <button class="btn-modal-cancel" onclick="this.closest('.custom-modal-overlay').remove()" style="padding: 7px 14px; font-size: 0.85rem;">
             <i class="bi bi-x-lg"></i> Cancel
           </button>
-          <button class="btn-modal-confirm" onclick="CartManager.submitOrder()" style="padding: 8px 16px; font-size: 0.9rem;">
+          <button class="btn-modal-confirm" onclick="CartManager.submitOrder()" style="padding: 7px 14px; font-size: 0.85rem;">
             <i class="bi bi-check-circle"></i> Place Order
           </button>
         </div>
