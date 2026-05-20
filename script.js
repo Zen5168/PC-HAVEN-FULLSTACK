@@ -64,6 +64,9 @@ const EMBEDDED_INVENTORY = {
 
 // Load inventory from JSON file or use embedded data
 async function loadInventory() {
+  // Initialize categories from embedded data
+  CATEGORIES_DB = EMBEDDED_INVENTORY.categories;
+  
   try {
     // Try to fetch from API first
     const response = await fetch('/api/products');
@@ -101,6 +104,8 @@ async function loadInventory() {
     cat.count = `${count} Models`;
   });
   
+  console.log('✅ Categories loaded:', CATEGORIES_DB.length, 'categories');
+  
   return true;
 }
 
@@ -126,6 +131,7 @@ const TESTIMONIALS_DB = [
 ============================================================ */
 let activeCategoryFilter = 'all';
 let activeBuilderCategory = null;
+let activeCategoryNavFilter = 'all'; // For category navbar filtering
 
 // PC Builder State Management
 const PCBuilder = {
@@ -820,31 +826,105 @@ function renderAllComponents() {
   // Render Products Grid System
   const prodGrid = document.getElementById('products-grid');
   if (prodGrid) {
-    const targetSet = activeCategoryFilter === 'all' ? PRODUCTS_DB : PRODUCTS_DB.filter(p => p.cat === activeCategoryFilter);
+    let targetSet = activeCategoryFilter === 'all' ? PRODUCTS_DB : PRODUCTS_DB.filter(p => p.cat === activeCategoryFilter);
+    
+    // Sort by category when showing all components
+    if (activeCategoryFilter === 'all') {
+      targetSet = targetSet.sort((a, b) => {
+        // Get category order from CATEGORIES_DB
+        const catOrderA = CATEGORIES_DB.findIndex(c => c.id === a.cat);
+        const catOrderB = CATEGORIES_DB.findIndex(c => c.id === b.cat);
+        return catOrderA - catOrderB;
+      });
+    }
+    
     if (targetSet.length === 0) {
       prodGrid.innerHTML = `<div class="col-12 text-center text-muted">No components found matching parameters.</div>`;
     } else {
-      prodGrid.innerHTML = targetSet.map(p => `
-        <div class="col-xl-4 col-md-6">
-          <div class="product-card">
-            <div class="product-img-wrap">
-              <div class="badge-stack"><span class="badge-sale">${p.label}</span></div>
-              ${p.image ? `<img src="${p.image}" alt="${p.name}" class="product-image" />` : `<div class="item-emoji">${p.emoji}</div>`}
-            </div>
-            <div class="product-body">
-              <div class="product-category">Inventory Token ID: ${p.id}</div>
-              <h4 class="product-name">${p.name}</h4>
-              <p class="product-spec text-truncate-2">${p.spec}</p>
-              <div class="product-footer">
-                <span class="product-price">₱${p.price.toLocaleString()}</span>
-                <button class="btn-add-cart" onclick="CartManager.addItem('${p.id}', '${p.name}', ${p.price}, '${p.emoji}')">
-                  <i class="bi bi-plus-lg"></i> Allocate
-                </button>
+      // Group products by category for display when showing all
+      let html = '';
+      if (activeCategoryFilter === 'all') {
+        // Group by category
+        const groupedProducts = {};
+        targetSet.forEach(p => {
+          if (!groupedProducts[p.cat]) {
+            groupedProducts[p.cat] = [];
+          }
+          groupedProducts[p.cat].push(p);
+        });
+        
+        // Render each category group
+        CATEGORIES_DB.forEach(cat => {
+          const products = groupedProducts[cat.id];
+          if (products && products.length > 0) {
+            html += `
+              <div class="col-12">
+                <div class="category-section-header">
+                  <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="category-icon-large">
+                      <i class="bi ${cat.icon}"></i>
+                    </div>
+                    <div>
+                      <h3 class="category-section-title">${cat.name}</h3>
+                      <p class="category-section-subtitle">${products.length} products available</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            html += products.map(p => `
+              <div class="col-xl-4 col-md-6">
+                <div class="product-card">
+                  <div class="product-img-wrap">
+                    <div class="badge-stack"><span class="badge-sale">${p.label}</span></div>
+                    ${p.image ? `<img src="${p.image}" alt="${p.name}" class="product-image" />` : `<div class="item-emoji">${p.emoji}</div>`}
+                  </div>
+                  <div class="product-body">
+                    <div class="product-category">${cat.name}</div>
+                    <h4 class="product-name">${p.name}</h4>
+                    <p class="product-spec text-truncate-2">${p.spec}</p>
+                    <div class="product-footer">
+                      <span class="product-price">₱${p.price.toLocaleString()}</span>
+                      <button class="btn-add-cart" onclick="CartManager.addItem('${p.id}', '${p.name}', ${p.price}, '${p.emoji}')">
+                        <i class="bi bi-plus-lg"></i> Allocate
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `).join('');
+          }
+        });
+      } else {
+        // Single category view
+        html = targetSet.map(p => {
+          const cat = CATEGORIES_DB.find(c => c.id === p.cat);
+          return `
+            <div class="col-xl-4 col-md-6">
+              <div class="product-card">
+                <div class="product-img-wrap">
+                  <div class="badge-stack"><span class="badge-sale">${p.label}</span></div>
+                  ${p.image ? `<img src="${p.image}" alt="${p.name}" class="product-image" />` : `<div class="item-emoji">${p.emoji}</div>`}
+                </div>
+                <div class="product-body">
+                  <div class="product-category">${cat ? cat.name : 'Component'}</div>
+                  <h4 class="product-name">${p.name}</h4>
+                  <p class="product-spec text-truncate-2">${p.spec}</p>
+                  <div class="product-footer">
+                    <span class="product-price">₱${p.price.toLocaleString()}</span>
+                    <button class="btn-add-cart" onclick="CartManager.addItem('${p.id}', '${p.name}', ${p.price}, '${p.emoji}')">
+                      <i class="bi bi-plus-lg"></i> Allocate
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      `).join('');
+          `;
+        }).join('');
+      }
+      
+      prodGrid.innerHTML = html;
     }
   }
 
