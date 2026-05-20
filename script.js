@@ -703,41 +703,179 @@ const CartManager = {
     }
     
     const user = JSON.parse(session);
+    
+    // Show delivery address form
+    const modal = document.createElement('div');
+    modal.className = 'custom-modal-overlay';
+    modal.innerHTML = `
+      <div class="custom-modal" style="max-width: 600px;">
+        <div class="custom-modal-header">
+          <h3><i class="bi bi-geo-alt"></i> Delivery Information</h3>
+        </div>
+        <div class="custom-modal-body">
+          <form id="deliveryForm">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Full Delivery Address <span class="text-danger">*</span></label>
+              <textarea 
+                class="form-control" 
+                id="deliveryAddress" 
+                rows="3" 
+                placeholder="House/Unit No., Street, Barangay"
+                required
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none;"
+              ></textarea>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">City/Municipality <span class="text-danger">*</span></label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="deliveryCity" 
+                  placeholder="e.g., Quezon City"
+                  required
+                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);"
+                />
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Postal Code <span class="text-danger">*</span></label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="deliveryPostalCode" 
+                  placeholder="e.g., 1100"
+                  required
+                  pattern="[0-9]{4}"
+                  maxlength="4"
+                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);"
+                />
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Contact Phone <span class="text-danger">*</span></label>
+              <input 
+                type="tel" 
+                class="form-control" 
+                id="deliveryPhone" 
+                placeholder="e.g., 09171234567"
+                required
+                pattern="[0-9]{11}"
+                maxlength="11"
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);"
+              />
+              <small class="text-muted">11-digit mobile number</small>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Delivery Notes (Optional)</label>
+              <textarea 
+                class="form-control" 
+                id="deliveryNotes" 
+                rows="2" 
+                placeholder="Landmarks, special instructions, etc."
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none;"
+              ></textarea>
+            </div>
+            
+            <div class="alert" style="background: var(--bg-muted); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 15px;">
+              <div class="d-flex justify-content-between mb-2">
+                <strong>Order Total:</strong>
+                <strong class="text-primary">₱${total.toLocaleString()}</strong>
+              </div>
+              <small class="text-muted">Delivery fee will be calculated based on location</small>
+            </div>
+          </form>
+        </div>
+        <div class="custom-modal-footer">
+          <button class="btn-modal-cancel" onclick="this.closest('.custom-modal-overlay').remove()">
+            <i class="bi bi-x-lg"></i> Cancel
+          </button>
+          <button class="btn-modal-confirm" onclick="CartManager.submitOrder()">
+            <i class="bi bi-check-circle"></i> Place Order
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Close modal on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+  },
+  
+  async submitOrder() {
+    // Validate form
+    const form = document.getElementById('deliveryForm');
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    
+    const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+    const deliveryCity = document.getElementById('deliveryCity').value.trim();
+    const deliveryPostalCode = document.getElementById('deliveryPostalCode').value.trim();
+    const deliveryPhone = document.getElementById('deliveryPhone').value.trim();
+    const deliveryNotes = document.getElementById('deliveryNotes').value.trim();
+    
+    const cart = this.getItems();
+    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    
+    const session = localStorage.getItem('pchaven_session');
+    const user = JSON.parse(session);
     const token = user.token;
     
-    // Get API URL
     const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000/api'
       : `${window.location.protocol}//${window.location.host}/api`;
     
-    // Send order to backend
-    fetch(`${API_URL}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        items: cart,
-        total: total
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
+    try {
+      const response = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          items: cart,
+          total: total,
+          deliveryAddress,
+          deliveryCity,
+          deliveryPostalCode,
+          deliveryPhone,
+          deliveryNotes
+        })
+      });
+      
+      const data = await response.json();
+      
       if (data.success) {
+        // Close delivery form modal
+        document.querySelector('.custom-modal-overlay').remove();
+        
         // Show success modal
-        const modal = document.createElement('div');
-        modal.className = 'custom-modal-overlay';
-        modal.innerHTML = `
+        const successModal = document.createElement('div');
+        successModal.className = 'custom-modal-overlay';
+        successModal.innerHTML = `
           <div class="custom-modal">
             <div class="custom-modal-header">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              <h5>Order Placed Successfully!</h5>
+              <h3><i class="bi bi-check-circle-fill text-success"></i> Order Placed Successfully!</h3>
             </div>
             <div class="custom-modal-body">
               <p><strong>Order ID:</strong> ${data.order.id}</p>
               <p><strong>Total:</strong> ₱${total.toLocaleString()}</p>
-              <p>Your order has been placed and is being processed. You can view your order details in "My Orders".</p>
+              <div class="mt-3 p-3" style="background: var(--bg-muted); border-radius: 8px;">
+                <p class="mb-1"><strong>Delivery Address:</strong></p>
+                <p class="mb-1">${deliveryAddress}</p>
+                <p class="mb-1">${deliveryCity}, ${deliveryPostalCode}</p>
+                <p class="mb-0"><strong>Contact:</strong> ${deliveryPhone}</p>
+              </div>
+              <p class="mt-3">Your order has been placed and is being processed. You can view your order details in "My Orders".</p>
             </div>
             <div class="custom-modal-footer">
               <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove();">
@@ -746,17 +884,19 @@ const CartManager = {
             </div>
           </div>
         `;
-        document.body.appendChild(modal);
+        document.body.appendChild(successModal);
         
         // Close modal on overlay click
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal) {
-            modal.remove();
+        successModal.addEventListener('click', (e) => {
+          if (e.target === successModal) {
+            successModal.remove();
           }
         });
         
         // Clear cart
         this.saveItems([]);
+        this.syncBadge();
+        this.renderDrawer();
         document.getElementById('cartDrawer').classList.remove('open');
         document.getElementById('cartOverlay').classList.remove('open');
         
@@ -764,11 +904,10 @@ const CartManager = {
       } else {
         ToastSystem.trigger(data.message || 'Failed to place order', '❌');
       }
-    })
-    .catch(error => {
+    } catch (error) {
       console.error('Checkout error:', error);
       ToastSystem.trigger('Failed to place order. Please try again.', '❌');
-    });
+    }
   }
 };
 

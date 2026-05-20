@@ -378,6 +378,11 @@ app.get('/api/admin/orders', authenticateAdmin, async (req, res) => {
         o.order_id,
         o.total,
         o.status,
+        o.delivery_address,
+        o.delivery_city,
+        o.delivery_postal_code,
+        o.delivery_phone,
+        o.delivery_notes,
         o.created_at,
         o.cancelled_at,
         u.name as customer_name,
@@ -622,6 +627,11 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
         o.order_id,
         o.total,
         o.status,
+        o.delivery_address,
+        o.delivery_city,
+        o.delivery_postal_code,
+        o.delivery_phone,
+        o.delivery_notes,
         o.created_at,
         o.cancelled_at
       FROM orders o
@@ -664,7 +674,7 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
 app.post('/api/orders', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { items, total } = req.body;
+    const { items, total, deliveryAddress, deliveryCity, deliveryPostalCode, deliveryPhone, deliveryNotes } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ 
@@ -673,12 +683,21 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       });
     }
 
+    // Validate delivery information
+    if (!deliveryAddress || !deliveryCity || !deliveryPostalCode || !deliveryPhone) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please provide complete delivery information' 
+      });
+    }
+
     const orderId = 'ORD-' + Date.now();
 
-    // Insert order
+    // Insert order with delivery information
     const orderResult = await db.query(
-      'INSERT INTO orders (user_id, order_id, total, status) VALUES ($1, $2, $3, $4) RETURNING id',
-      [userId, orderId, total, 'Processing']
+      `INSERT INTO orders (user_id, order_id, total, status, delivery_address, delivery_city, delivery_postal_code, delivery_phone, delivery_notes) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [userId, orderId, total, 'Processing', deliveryAddress, deliveryCity, deliveryPostalCode, deliveryPhone, deliveryNotes || null]
     );
 
     const orderDbId = orderResult.rows[0].id;

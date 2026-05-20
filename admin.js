@@ -204,6 +204,14 @@ function renderOrders(orders) {
         </ul>
       </div>
       
+      <div class="mb-2 p-3" style="background: var(--bg-muted); border-radius: 8px; border-left: 3px solid var(--accent);">
+        <strong><i class="bi bi-geo-alt"></i> Delivery Address:</strong>
+        <p class="mb-1 mt-2">${order.delivery_address}</p>
+        <p class="mb-1">${order.delivery_city}, ${order.delivery_postal_code}</p>
+        <p class="mb-1"><strong>Contact:</strong> ${order.delivery_phone}</p>
+        ${order.delivery_notes ? `<p class="mb-0"><strong>Notes:</strong> ${order.delivery_notes}</p>` : ''}
+      </div>
+      
       ${order.status === 'Processing' ? `
         <div class="mt-2">
           <button class="btn-action btn-deliver" onclick="deliverOrder('${order.order_id}')">
@@ -704,9 +712,68 @@ async function submitResponse(requestId) {
 }
 
 async function updateRequestStatus(requestId, status) {
-  if (!confirm(`Are you sure you want to mark this request as ${status}?`)) {
-    return;
-  }
+  // Create custom confirmation modal
+  const modal = document.createElement('div');
+  modal.className = 'custom-modal-overlay';
+  
+  const statusMessages = {
+    'Fulfilled': {
+      title: 'Mark as Fulfilled',
+      message: 'Are you sure you want to mark this request as fulfilled?',
+      icon: 'bi-check-circle-fill text-success',
+      confirmText: 'Mark Fulfilled',
+      confirmClass: 'btn-modal-confirm'
+    },
+    'Rejected': {
+      title: 'Reject Request',
+      message: 'Are you sure you want to reject this component request?',
+      icon: 'bi-x-circle-fill text-danger',
+      confirmText: 'Reject Request',
+      confirmClass: 'btn-modal-confirm btn-danger'
+    },
+    'Reviewed': {
+      title: 'Mark as Reviewed',
+      message: 'Mark this request as reviewed?',
+      icon: 'bi-eye-fill text-info',
+      confirmText: 'Mark Reviewed',
+      confirmClass: 'btn-modal-confirm'
+    }
+  };
+  
+  const statusInfo = statusMessages[status];
+  
+  modal.innerHTML = `
+    <div class="custom-modal">
+      <div class="custom-modal-header">
+        <h3><i class="bi ${statusInfo.icon}"></i> ${statusInfo.title}</h3>
+      </div>
+      <div class="custom-modal-body">
+        <p>${statusInfo.message}</p>
+      </div>
+      <div class="custom-modal-footer">
+        <button class="btn-modal-cancel" onclick="this.closest('.custom-modal-overlay').remove()">
+          <i class="bi bi-x-lg"></i> Cancel
+        </button>
+        <button class="${statusInfo.confirmClass}" onclick="confirmUpdateRequestStatus(${requestId}, '${status}')">
+          <i class="bi bi-check-lg"></i> ${statusInfo.confirmText}
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+async function confirmUpdateRequestStatus(requestId, status) {
+  // Close confirmation modal
+  document.querySelector('.custom-modal-overlay').remove();
   
   try {
     const token = localStorage.getItem('adminToken');
@@ -724,13 +791,105 @@ async function updateRequestStatus(requestId, status) {
     
     if (data.success) {
       loadComponentRequests();
-      showToast(`Request marked as ${status}`, 'success');
+      
+      // Show success modal
+      const successModal = document.createElement('div');
+      successModal.className = 'custom-modal-overlay';
+      
+      const statusSuccessMessages = {
+        'Fulfilled': { icon: 'bi-check-circle-fill text-success', message: 'Request marked as fulfilled successfully!' },
+        'Rejected': { icon: 'bi-x-circle-fill text-danger', message: 'Request has been rejected.' },
+        'Reviewed': { icon: 'bi-eye-fill text-info', message: 'Request marked as reviewed.' }
+      };
+      
+      const successInfo = statusSuccessMessages[status];
+      
+      successModal.innerHTML = `
+        <div class="custom-modal">
+          <div class="custom-modal-header">
+            <h3><i class="bi ${successInfo.icon}"></i> Success</h3>
+          </div>
+          <div class="custom-modal-body">
+            <p>${successInfo.message}</p>
+          </div>
+          <div class="custom-modal-footer">
+            <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove()">
+              <i class="bi bi-check-lg"></i> OK
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(successModal);
+      
+      // Close on overlay click
+      successModal.addEventListener('click', (e) => {
+        if (e.target === successModal) {
+          successModal.remove();
+        }
+      });
+      
+      // Auto close after 2 seconds
+      setTimeout(() => {
+        if (document.body.contains(successModal)) {
+          successModal.remove();
+        }
+      }, 2000);
     } else {
-      alert(data.message || 'Failed to update status');
+      // Show error modal
+      const errorModal = document.createElement('div');
+      errorModal.className = 'custom-modal-overlay';
+      errorModal.innerHTML = `
+        <div class="custom-modal">
+          <div class="custom-modal-header">
+            <h3><i class="bi bi-exclamation-triangle-fill text-warning"></i> Error</h3>
+          </div>
+          <div class="custom-modal-body">
+            <p>${data.message || 'Failed to update status'}</p>
+          </div>
+          <div class="custom-modal-footer">
+            <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove()">
+              <i class="bi bi-check-lg"></i> OK
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(errorModal);
+      
+      errorModal.addEventListener('click', (e) => {
+        if (e.target === errorModal) {
+          errorModal.remove();
+        }
+      });
     }
   } catch (error) {
     console.error('Error updating status:', error);
-    alert('Failed to update status');
+    
+    // Show error modal
+    const errorModal = document.createElement('div');
+    errorModal.className = 'custom-modal-overlay';
+    errorModal.innerHTML = `
+      <div class="custom-modal">
+        <div class="custom-modal-header">
+          <h3><i class="bi bi-exclamation-triangle-fill text-warning"></i> Error</h3>
+        </div>
+        <div class="custom-modal-body">
+          <p>Failed to update status. Please try again.</p>
+        </div>
+        <div class="custom-modal-footer">
+          <button class="btn-modal-confirm" onclick="this.closest('.custom-modal-overlay').remove()">
+            <i class="bi bi-check-lg"></i> OK
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(errorModal);
+    
+    errorModal.addEventListener('click', (e) => {
+      if (e.target === errorModal) {
+        errorModal.remove();
+      }
+    });
   }
 }
 
