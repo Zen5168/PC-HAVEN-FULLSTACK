@@ -1207,7 +1207,7 @@ function handleBookingSubmit() {
   };
   
   // Check if user is logged in
-  const session = localStorage.getItem('userSession');
+  const session = localStorage.getItem('pchaven_session');
   if (!session) {
     ToastSystem.trigger('Please login to book a service', '⚠️');
     return;
