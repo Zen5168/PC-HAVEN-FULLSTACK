@@ -738,6 +738,30 @@
       color: var(--text-primary);
     }
     
+    /* Ensure all table text is visible in both themes */
+    .product-table td,
+    .product-table th {
+      color: var(--text-primary) !important;
+    }
+    
+    .product-table tbody tr {
+      background: var(--bg-surface);
+    }
+    
+    .product-table tbody tr:hover {
+      background: var(--bg-muted);
+    }
+    
+    /* Fix Bootstrap table overrides */
+    .table-responsive .product-table {
+      background: transparent !important;
+    }
+    
+    .table-responsive .product-table td,
+    .table-responsive .product-table th {
+      background: transparent !important;
+    }
+    
     .btn-action {
       padding: 6px 15px;
       border: none;
@@ -1007,7 +1031,7 @@
           </button>
         </div>
         <div class="table-responsive">
-          <table class="table">
+          <table class="product-table">
             <thead>
               <tr>
                 <th>Service Name</th>
