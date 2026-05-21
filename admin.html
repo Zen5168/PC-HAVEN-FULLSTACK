@@ -469,6 +469,21 @@
     
     .order-item .text-muted {
       color: var(--text-secondary) !important;
+      opacity: 0.9;
+    }
+    
+    /* Make all muted text more visible */
+    .text-muted,
+    p.text-muted,
+    small.text-muted {
+      color: var(--text-secondary) !important;
+      opacity: 0.85 !important;
+    }
+    
+    /* Ensure secondary text is visible */
+    .text-secondary {
+      color: var(--text-secondary) !important;
+      opacity: 0.9 !important;
     }
     
     .order-item strong {
