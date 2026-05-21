@@ -389,21 +389,61 @@
         <div class="modal-body" style="color: var(--text-primary);">
           <form id="technicianBookingForm" onsubmit="event.preventDefault(); handleBookingSubmit();">
             <div class="mb-3">
-              <label class="form-label small fw-semibold text-secondary">Target Sub-System</label>
+              <label class="form-label small fw-semibold text-secondary">Service</label>
               <input type="text" class="form-control" id="bookingServiceName" readonly
                 style="background: var(--bg-muted); color: var(--text-primary); border-color: var(--border);" />
             </div>
             <div class="mb-3">
-              <label class="form-label small fw-semibold text-secondary">Client Designation Name</label>
-              <input type="text" class="form-control" required
+              <label class="form-label small fw-semibold text-secondary">Your Name *</label>
+              <input type="text" name="customerName" class="form-control" required
                 style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);" />
             </div>
             <div class="mb-3">
-              <label class="form-label small fw-semibold text-secondary">Deployment Vector Date</label>
-              <input type="date" class="form-control" required
+              <label class="form-label small fw-semibold text-secondary">Email *</label>
+              <input type="email" name="customerEmail" class="form-control" required
                 style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);" />
             </div>
-            <button type="submit" class="btn btn-hero-primary w-100 mt-2">Dispatch Technician</button>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-secondary">Phone Number *</label>
+              <input type="tel" name="customerPhone" class="form-control" placeholder="09XXXXXXXXX" required
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);" />
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold text-secondary">Preferred Date *</label>
+                <input type="date" name="preferredDate" class="form-control" required
+                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);" />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label small fw-semibold text-secondary">Preferred Time *</label>
+                <select name="preferredTime" class="form-control" required
+                  style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+                  <option value="">Select time</option>
+                  <option value="9:00 AM">9:00 AM</option>
+                  <option value="10:00 AM">10:00 AM</option>
+                  <option value="11:00 AM">11:00 AM</option>
+                  <option value="1:00 PM">1:00 PM</option>
+                  <option value="2:00 PM">2:00 PM</option>
+                  <option value="3:00 PM">3:00 PM</option>
+                  <option value="4:00 PM">4:00 PM</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-secondary">Service Address *</label>
+              <textarea name="address" class="form-control" rows="2" required
+                placeholder="Complete address where service will be performed"
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none;"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-secondary">Additional Notes (Optional)</label>
+              <textarea name="notes" class="form-control" rows="2"
+                placeholder="Any special instructions or requirements"
+                style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border); resize: none;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-hero-primary w-100 mt-2">
+              <i class="bi bi-calendar-check"></i> Book Service
+            </button>
           </form>
         </div>
       </div>

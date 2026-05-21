@@ -115,6 +115,31 @@ const SERVICES_DB = [
   { id: 'srv3', name: 'Critical OS & Driver Diagnostics Suite', desc: 'Secure operating system fresh payload deployment, absolute latency isolation tracking, and driver configuration mapping.', price: 2240, duration: '1 Hour' }
 ];
 
+// Load services from API
+async function loadServicesFromAPI() {
+  try {
+    const response = await fetch('/api/services');
+    const data = await response.json();
+    
+    if (data.success && data.services.length > 0) {
+      // Map API services to match the expected format
+      return data.services.map(s => ({
+        id: s.id,
+        name: s.service_name,
+        desc: s.description,
+        price: parseFloat(s.price),
+        duration: s.duration,
+        icon: s.icon
+      }));
+    }
+  } catch (error) {
+    console.warn('Could not load services from API, using fallback data:', error);
+  }
+  
+  // Return fallback data if API fails
+  return SERVICES_DB;
+}
+
 const TRUST_DB = [
   { icon: 'bi-shield-check', title: 'Secured Component Warranties', desc: '100% Verified product distribution manifests.' },
   { icon: 'bi-truck', title: 'Priority Drop Logistics', desc: 'Insured anti-shock freight networks nationwide.' },
@@ -933,7 +958,7 @@ const ToastSystem = {
 /* ============================================================
    TEMPLATE RENDERING DOM ENGINES
 ============================================================ */
-function renderAllComponents() {
+async function renderAllComponents() {
   // Render Categories Row
   const catGrid = document.getElementById('categories-grid');
   if (catGrid) {
@@ -1070,15 +1095,18 @@ function renderAllComponents() {
   // Render Repair Technician Service Cards
   const servGrid = document.getElementById('services-grid');
   if (servGrid) {
-    servGrid.innerHTML = SERVICES_DB.map(s => `
+    // Load services from API
+    const services = await loadServicesFromAPI();
+    
+    servGrid.innerHTML = services.map(s => `
       <div class="col-lg-4 col-md-6">
         <div class="service-card">
-          <div class="service-icon-wrap"><i class="bi bi-gear-fill"></i></div>
+          <div class="service-icon-wrap"><i class="bi ${s.icon || 'bi-gear-fill'}"></i></div>
           <h4 class="service-name">${s.name}</h4>
           <p class="service-desc">${s.desc}</p>
           <div class="service-meta">
             <span class="service-price">₱${parseFloat(s.price).toLocaleString('en-US')} <span class="text-muted small">/ Base</span></span>
-            <button class="btn-book-service" onclick="openBookingDialogue('${s.name}')">Request Node</button>
+            <button class="btn-book-service" onclick="openBookingDialogue(${s.id}, '${s.name.replace(/'/g, "\\'")}', ${s.price})">Request Node</button>
           </div>
         </div>
       </div>

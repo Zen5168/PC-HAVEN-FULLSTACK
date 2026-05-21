@@ -1038,39 +1038,57 @@ async function loadServices() {
     }
   } catch (error) {
     console.error('Error loading services:', error);
-    document.getElementById('servicesTableBody').innerHTML = '<tr><td colspan="6" class="text-danger">Failed to load services</td></tr>';
+    document.getElementById('servicesTable').innerHTML = '<p class="text-danger">Failed to load services</p>';
   }
 }
 
 function renderServices(services) {
-  const tbody = document.getElementById('servicesTableBody');
+  const container = document.getElementById('servicesTable');
   
   if (services.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No services found</td></tr>';
+    container.innerHTML = '<p class="text-muted">No services found</p>';
     return;
   }
   
-  tbody.innerHTML = services.map(service => `
-    <tr>
-      <td style="color: var(--text-primary) !important;">${service.service_name}</td>
-      <td style="color: var(--text-secondary) !important; max-width: 300px;">${service.description.substring(0, 100)}...</td>
-      <td style="color: var(--text-primary) !important;">₱${parseFloat(service.price).toLocaleString('en-US')}</td>
-      <td style="color: var(--text-secondary) !important;">${service.duration || 'N/A'}</td>
-      <td>
-        <span class="badge ${service.is_active ? 'bg-success' : 'bg-secondary'}">
-          ${service.is_active ? 'Active' : 'Inactive'}
-        </span>
-      </td>
-      <td>
-        <button class="btn-action btn-edit" onclick='editService(${JSON.stringify(service)})'>
-          <i class="bi bi-pencil"></i> Edit
-        </button>
-        <button class="btn-action btn-delete" onclick="deleteService(${service.id})">
-          <i class="bi bi-trash"></i> Delete
-        </button>
-      </td>
-    </tr>
-  `).join('');
+  container.innerHTML = `
+    <table class="product-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Service Name</th>
+          <th>Description</th>
+          <th>Price</th>
+          <th>Duration</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${services.map(service => `
+          <tr>
+            <td>${service.id}</td>
+            <td><i class="bi ${service.icon}"></i> ${service.service_name}</td>
+            <td style="max-width: 300px;">${service.description.substring(0, 80)}...</td>
+            <td>₱${parseFloat(service.price).toLocaleString('en-US')}</td>
+            <td>${service.duration || 'N/A'}</td>
+            <td>
+              <span class="badge ${service.is_active ? 'bg-success' : 'bg-secondary'}">
+                ${service.is_active ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+            <td>
+              <button class="btn-action btn-edit" onclick='editService(${JSON.stringify(service)})'>
+                <i class="bi bi-pencil"></i> Edit
+              </button>
+              <button class="btn-action btn-delete" onclick="deleteService(${service.id})">
+                <i class="bi bi-trash"></i> Delete
+              </button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 function showAddServiceModal() {
