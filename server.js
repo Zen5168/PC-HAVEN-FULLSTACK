@@ -353,14 +353,32 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
     `);
 
     const productStats = await db.query('SELECT COUNT(*) as total_products FROM products');
+    
+    // Get service bookings stats
+    const serviceStats = await db.query(`
+      SELECT 
+        COUNT(*) as total_bookings,
+        SUM(CASE WHEN status = 'Completed' THEN total_price ELSE 0 END) as service_revenue,
+        SUM(CASE WHEN status = 'Pending' OR status = 'Confirmed' OR status = 'In Progress' THEN 1 ELSE 0 END) as pending_bookings
+      FROM service_bookings
+    `);
+
+    // Calculate total revenue from both orders and completed services
+    const orderRevenue = parseFloat(orderStats.rows[0].total_revenue || 0);
+    const serviceRevenue = parseFloat(serviceStats.rows[0].service_revenue || 0);
+    const totalRevenue = orderRevenue + serviceRevenue;
 
     res.json({
       success: true,
       stats: {
         totalOrders: parseInt(orderStats.rows[0].total_orders),
-        totalRevenue: parseFloat(orderStats.rows[0].total_revenue || 0),
+        totalRevenue: totalRevenue,
         pendingOrders: parseInt(orderStats.rows[0].pending_orders),
-        totalProducts: parseInt(productStats.rows[0].total_products)
+        totalProducts: parseInt(productStats.rows[0].total_products),
+        // Additional service booking stats
+        totalBookings: parseInt(serviceStats.rows[0].total_bookings || 0),
+        serviceRevenue: serviceRevenue,
+        pendingBookings: parseInt(serviceStats.rows[0].pending_bookings || 0)
       }
     });
 

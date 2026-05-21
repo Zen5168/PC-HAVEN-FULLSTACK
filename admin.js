@@ -138,6 +138,7 @@ async function loadDashboard() {
     if (data.success) {
       document.getElementById('totalOrders').textContent = data.stats.totalOrders;
       document.getElementById('totalRevenue').textContent = '₱' + parseFloat(data.stats.totalRevenue).toLocaleString('en-US');
+      document.getElementById('totalBookings').textContent = data.stats.totalBookings || 0;
       document.getElementById('pendingOrders').textContent = data.stats.pendingOrders;
       document.getElementById('totalProducts').textContent = data.stats.totalProducts;
       console.log('✅ Dashboard loaded successfully');
