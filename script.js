@@ -1106,7 +1106,7 @@ async function renderAllComponents() {
           <p class="service-desc">${s.desc}</p>
           <div class="service-meta">
             <span class="service-price">₱${parseFloat(s.price).toLocaleString('en-US')} <span class="text-muted small">/ Base</span></span>
-            <button class="btn-book-service" onclick="openBookingDialogue(${s.id}, '${s.name.replace(/'/g, "\\'")}', ${s.price})">Request Node</button>
+            <button class="btn-book-service" onclick="openBookingDialogue('${s.name.replace(/'/g, "\\'")}')">Request Node</button>
           </div>
         </div>
       </div>
