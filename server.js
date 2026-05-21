@@ -10,6 +10,7 @@ const { body, validationResult } = require('express-validator');
 require('dotenv').config();
 
 const db = require('./db');
+const { loginLimiter, registerLimiter, apiLimiter } = require('./rate-limiter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Apply general rate limiting to all API routes
+app.use('/api/', apiLimiter);
+
 // Serve static files (your front-end)
 app.use(express.static(__dirname));
 
@@ -27,7 +31,7 @@ app.use(express.static(__dirname));
 ============================================================ */
 
 // Register endpoint
-app.post('/api/register', [
+app.post('/api/register', registerLimiter, [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
   body('email').custom(value => {
@@ -104,7 +108,7 @@ app.post('/api/register', [
 });
 
 // Login endpoint
-app.post('/api/login', [
+app.post('/api/login', loginLimiter, [
   body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
   body('password').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
@@ -261,7 +265,7 @@ app.get('/api/admin/test', async (req, res) => {
 });
 
 // Admin login
-app.post('/api/admin/login', [
+app.post('/api/admin/login', loginLimiter, [
   body('username').notEmpty().withMessage('Username or email is required'),
   body('password').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
