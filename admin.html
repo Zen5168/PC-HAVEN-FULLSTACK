@@ -997,27 +997,37 @@
   
   <!-- Theme Toggle Script -->
   <script>
-    const themeToggle = document.getElementById('themeToggle');
+    // Get all theme toggle buttons
+    const themeToggleButtons = document.querySelectorAll('[id="themeToggle"]');
     const currentTheme = localStorage.getItem('pchaven_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', currentTheme);
+    
+    // Update all theme icons
+    function updateThemeIcon(theme) {
+      themeToggleButtons.forEach(btn => {
+        const icon = btn.querySelector('i');
+        if (icon) {
+          if (theme === 'light') {
+            icon.className = 'bi bi-sun-fill';
+          } else {
+            icon.className = 'bi bi-moon-stars-fill';
+          }
+        }
+      });
+    }
+    
     updateThemeIcon(currentTheme);
 
-    themeToggle.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const target = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', target);
-      localStorage.setItem('pchaven_theme', target);
-      updateThemeIcon(target);
+    // Add click event to all theme toggle buttons
+    themeToggleButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const target = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', target);
+        localStorage.setItem('pchaven_theme', target);
+        updateThemeIcon(target);
+      });
     });
-
-    function updateThemeIcon(theme) {
-      const icon = themeToggle.querySelector('i');
-      if (theme === 'light') {
-        icon.className = 'bi bi-sun-fill';
-      } else {
-        icon.className = 'bi bi-moon-stars-fill';
-      }
-    }
   </script>
 </body>
 </html>

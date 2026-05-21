@@ -982,6 +982,371 @@ app.patch('/api/admin/component-requests/:id', authenticateAdmin, async (req, re
 });
 
 /* ============================================================
+   TECH SERVICES ROUTES
+============================================================ */
+
+// Get all active tech services (Public)
+app.get('/api/services', async (req, res) => {
+  try {
+    const services = await db.query(`
+      SELECT id, service_name, description, price, duration, icon
+      FROM tech_services
+      WHERE is_active = TRUE
+      ORDER BY id
+    `);
+
+    res.json({
+      success: true,
+      services: services.rows
+    });
+
+  } catch (error) {
+    console.error('Get services error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch services' 
+    });
+  }
+});
+
+// Book a service (User)
+app.post('/api/service-bookings', authenticateToken, [
+  body('serviceId').isInt().withMessage('Invalid service ID'),
+  body('customerName').trim().notEmpty().withMessage('Name is required'),
+  body('customerEmail').isEmail().normalizeEmail().withMessage('Invalid email'),
+  body('customerPhone').trim().notEmpty().withMessage('Phone is required'),
+  body('preferredDate').isDate().withMessage('Invalid date'),
+  body('preferredTime').trim().notEmpty().withMessage('Time is required'),
+  body('address').trim().notEmpty().withMessage('Address is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: errors.array()[0].msg 
+      });
+    }
+
+    const userId = req.user.userId;
+    const { serviceId, customerName, customerEmail, customerPhone, preferredDate, preferredTime, address, notes } = req.body;
+
+    // Get service details
+    const services = await db.query(
+      'SELECT id, service_name, price FROM tech_services WHERE id = $1 AND is_active = TRUE',
+      [serviceId]
+    );
+
+    if (services.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Service not found or unavailable' 
+      });
+    }
+
+    const service = services.rows[0];
+    const bookingId = 'SRV-' + Date.now();
+
+    // Insert booking
+    await db.query(
+      `INSERT INTO service_bookings 
+       (user_id, service_id, booking_id, customer_name, customer_email, customer_phone, 
+        preferred_date, preferred_time, address, notes, total_price) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [userId, serviceId, bookingId, customerName, customerEmail, customerPhone, 
+       preferredDate, preferredTime, address, notes || null, service.price]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Service booking submitted successfully',
+      booking: {
+        id: bookingId,
+        serviceName: service.service_name,
+        price: service.price,
+        status: 'Pending'
+      }
+    });
+
+  } catch (error) {
+    console.error('Book service error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to book service' 
+    });
+  }
+});
+
+// Get user's service bookings
+app.get('/api/service-bookings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const bookings = await db.query(`
+      SELECT 
+        sb.id,
+        sb.booking_id,
+        sb.customer_name,
+        sb.customer_email,
+        sb.customer_phone,
+        sb.preferred_date,
+        sb.preferred_time,
+        sb.address,
+        sb.notes,
+        sb.status,
+        sb.total_price,
+        sb.created_at,
+        ts.service_name,
+        ts.description,
+        ts.duration,
+        ts.icon
+      FROM service_bookings sb
+      JOIN tech_services ts ON sb.service_id = ts.id
+      WHERE sb.user_id = $1
+      ORDER BY sb.created_at DESC
+    `, [userId]);
+
+    res.json({
+      success: true,
+      bookings: bookings.rows
+    });
+
+  } catch (error) {
+    console.error('Get service bookings error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch bookings' 
+    });
+  }
+});
+
+// Cancel service booking (User)
+app.patch('/api/service-bookings/:bookingId/cancel', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { bookingId } = req.params;
+
+    const bookings = await db.query(
+      'SELECT id, status FROM service_bookings WHERE booking_id = $1 AND user_id = $2',
+      [bookingId, userId]
+    );
+
+    if (bookings.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Booking not found' 
+      });
+    }
+
+    const booking = bookings.rows[0];
+
+    if (booking.status === 'Cancelled') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Booking is already cancelled' 
+      });
+    }
+
+    if (booking.status === 'Completed') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot cancel completed booking' 
+      });
+    }
+
+    await db.query(
+      'UPDATE service_bookings SET status = $1 WHERE id = $2',
+      ['Cancelled', booking.id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Booking cancelled successfully'
+    });
+
+  } catch (error) {
+    console.error('Cancel booking error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to cancel booking' 
+    });
+  }
+});
+
+// Get all service bookings (Admin)
+app.get('/api/admin/service-bookings', authenticateAdmin, async (req, res) => {
+  try {
+    const bookings = await db.query(`
+      SELECT 
+        sb.id,
+        sb.booking_id,
+        sb.customer_name,
+        sb.customer_email,
+        sb.customer_phone,
+        sb.preferred_date,
+        sb.preferred_time,
+        sb.address,
+        sb.notes,
+        sb.status,
+        sb.total_price,
+        sb.created_at,
+        ts.service_name,
+        ts.description,
+        ts.duration,
+        ts.icon,
+        u.name as user_name,
+        u.email as user_email
+      FROM service_bookings sb
+      JOIN tech_services ts ON sb.service_id = ts.id
+      JOIN users u ON sb.user_id = u.id
+      ORDER BY 
+        CASE sb.status 
+          WHEN 'Pending' THEN 1 
+          WHEN 'Confirmed' THEN 2 
+          WHEN 'In Progress' THEN 3 
+          WHEN 'Completed' THEN 4 
+          WHEN 'Cancelled' THEN 5 
+        END,
+        sb.created_at DESC
+    `);
+
+    res.json({
+      success: true,
+      bookings: bookings.rows
+    });
+
+  } catch (error) {
+    console.error('Get all service bookings error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch bookings' 
+    });
+  }
+});
+
+// Update service booking status (Admin)
+app.patch('/api/admin/service-bookings/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ['Pending', 'Confirmed', 'In Progress', 'Completed', 'Cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid status' 
+      });
+    }
+
+    await db.query(
+      'UPDATE service_bookings SET status = $1 WHERE id = $2',
+      [status, id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Booking status updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Update booking status error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update booking' 
+    });
+  }
+});
+
+// Get all tech services (Admin)
+app.get('/api/admin/services', authenticateAdmin, async (req, res) => {
+  try {
+    const services = await db.query('SELECT * FROM tech_services ORDER BY id');
+
+    res.json({
+      success: true,
+      services: services.rows
+    });
+
+  } catch (error) {
+    console.error('Get all services error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch services' 
+    });
+  }
+});
+
+// Add tech service (Admin)
+app.post('/api/admin/services', authenticateAdmin, async (req, res) => {
+  try {
+    const { serviceName, description, price, duration, icon } = req.body;
+
+    await db.query(
+      'INSERT INTO tech_services (service_name, description, price, duration, icon) VALUES ($1, $2, $3, $4, $5)',
+      [serviceName, description, price, duration, icon || 'bi-tools']
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Service added successfully'
+    });
+
+  } catch (error) {
+    console.error('Add service error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to add service' 
+    });
+  }
+});
+
+// Update tech service (Admin)
+app.put('/api/admin/services/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { serviceName, description, price, duration, icon, isActive } = req.body;
+
+    await db.query(
+      'UPDATE tech_services SET service_name = $1, description = $2, price = $3, duration = $4, icon = $5, is_active = $6 WHERE id = $7',
+      [serviceName, description, price, duration, icon, isActive, id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Service updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Update service error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update service' 
+    });
+  }
+});
+
+// Delete tech service (Admin)
+app.delete('/api/admin/services/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await db.query('DELETE FROM tech_services WHERE id = $1', [id]);
+
+    res.json({
+      success: true,
+      message: 'Service deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete service error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to delete service' 
+    });
+  }
+});
+
+/* ============================================================
    SERVER START
 ============================================================ */
 app.listen(PORT, () => {
