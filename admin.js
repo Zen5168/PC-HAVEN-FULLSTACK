@@ -108,6 +108,8 @@ function showSection(section) {
   if (section === 'products') loadProducts();
   if (section === 'customers') loadCustomers();
   if (section === 'requests') loadComponentRequests();
+  if (section === 'services') loadServices();
+  if (section === 'bookings') loadServiceBookings();
 }
 
 /* ============================================================
@@ -1014,3 +1016,438 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('error', (e) => {
   console.error('JavaScript Error:', e.message, e.filename, e.lineno);
 });
+
+
+/* ============================================================
+   TECH SERVICES MANAGEMENT
+============================================================ */
+async function loadServices() {
+  try {
+    const token = localStorage.getItem('adminToken');
+    
+    const response = await fetch(`${API_URL}/api/admin/services`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      renderServices(data.services);
+    }
+  } catch (error) {
+    console.error('Error loading services:', error);
+    document.getElementById('servicesTableBody').innerHTML = '<tr><td colspan="6" class="text-danger">Failed to load services</td></tr>';
+  }
+}
+
+function renderServices(services) {
+  const tbody = document.getElementById('servicesTableBody');
+  
+  if (services.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No services found</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = services.map(service => `
+    <tr>
+      <td style="color: var(--text-primary) !important;">${service.service_name}</td>
+      <td style="color: var(--text-secondary) !important; max-width: 300px;">${service.description.substring(0, 100)}...</td>
+      <td style="color: var(--text-primary) !important;">₱${parseFloat(service.price).toLocaleString('en-US')}</td>
+      <td style="color: var(--text-secondary) !important;">${service.duration || 'N/A'}</td>
+      <td>
+        <span class="badge ${service.is_active ? 'bg-success' : 'bg-secondary'}">
+          ${service.is_active ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td>
+        <button class="btn-action btn-edit" onclick='editService(${JSON.stringify(service)})'>
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <button class="btn-action btn-delete" onclick="deleteService(${service.id})">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function showAddServiceModal() {
+  const modal = document.createElement('div');
+  modal.className = 'custom-modal-overlay';
+  modal.id = 'serviceModal';
+  
+  modal.innerHTML = `
+    <div class="custom-modal" style="max-width: 600px;">
+      <div class="custom-modal-header">
+        <h3><i class="bi bi-plus-circle"></i> Add New Service</h3>
+      </div>
+      <div class="custom-modal-body">
+        <form id="serviceForm">
+          <input type="hidden" id="serviceId" value="">
+          
+          <div class="mb-3">
+            <label class="form-label">Service Name *</label>
+            <input type="text" class="form-control" id="serviceName" required 
+                   style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Description *</label>
+            <textarea class="form-control" id="serviceDescription" rows="3" required
+                      style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);"></textarea>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Price (₱) *</label>
+              <input type="number" class="form-control" id="servicePrice" step="0.01" required
+                     style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Duration</label>
+              <input type="text" class="form-control" id="serviceDuration" placeholder="e.g., 1-2 Hours"
+                     style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Icon (Bootstrap Icon)</label>
+              <input type="text" class="form-control" id="serviceIcon" placeholder="bi-tools"
+                     style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Status</label>
+              <select class="form-control" id="serviceActive"
+                      style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="custom-modal-footer">
+        <button class="btn-modal-cancel" onclick="document.getElementById('serviceModal').remove()">
+          <i class="bi bi-x-lg"></i> Cancel
+        </button>
+        <button class="btn-modal-confirm" onclick="submitServiceForm()">
+          <i class="bi bi-check-lg"></i> Save Service
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+function editService(service) {
+  const modal = document.createElement('div');
+  modal.className = 'custom-modal-overlay';
+  modal.id = 'serviceModal';
+  
+  modal.innerHTML = `
+    <div class="custom-modal" style="max-width: 600px;">
+      <div class="custom-modal-header">
+        <h3><i class="bi bi-pencil"></i> Edit Service</h3>
+      </div>
+      <div class="custom-modal-body">
+        <form id="serviceForm">
+          <input type="hidden" id="serviceId" value="${service.id}">
+          
+          <div class="mb-3">
+            <label class="form-label">Service Name *</label>
+            <input type="text" class="form-control" id="serviceName" value="${service.service_name}" required
+                   style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Description *</label>
+            <textarea class="form-control" id="serviceDescription" rows="3" required
+                      style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">${service.description}</textarea>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Price (₱) *</label>
+              <input type="number" class="form-control" id="servicePrice" step="0.01" value="${service.price}" required
+                     style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Duration</label>
+              <input type="text" class="form-control" id="serviceDuration" value="${service.duration || ''}" placeholder="e.g., 1-2 Hours"
+                     style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Icon (Bootstrap Icon)</label>
+              <input type="text" class="form-control" id="serviceIcon" value="${service.icon || 'bi-tools'}" placeholder="bi-tools"
+                     style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Status</label>
+              <select class="form-control" id="serviceActive"
+                      style="background: var(--bg-base); color: var(--text-primary); border-color: var(--border);">
+                <option value="true" ${service.is_active ? 'selected' : ''}>Active</option>
+                <option value="false" ${!service.is_active ? 'selected' : ''}>Inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="custom-modal-footer">
+        <button class="btn-modal-cancel" onclick="document.getElementById('serviceModal').remove()">
+          <i class="bi bi-x-lg"></i> Cancel
+        </button>
+        <button class="btn-modal-confirm" onclick="submitServiceForm()">
+          <i class="bi bi-check-lg"></i> Update Service
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+async function submitServiceForm() {
+  const serviceId = document.getElementById('serviceId').value;
+  const isEdit = serviceId !== '';
+  
+  const serviceData = {
+    serviceName: document.getElementById('serviceName').value,
+    description: document.getElementById('serviceDescription').value,
+    price: parseFloat(document.getElementById('servicePrice').value),
+    duration: document.getElementById('serviceDuration').value,
+    icon: document.getElementById('serviceIcon').value || 'bi-tools',
+    isActive: document.getElementById('serviceActive').value === 'true'
+  };
+  
+  try {
+    const token = localStorage.getItem('adminToken');
+    
+    const response = await fetch(`${API_URL}/api/admin/services${isEdit ? '/' + serviceId : ''}`, {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(serviceData)
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      document.getElementById('serviceModal').remove();
+      showModal('Success', isEdit ? 'Service updated successfully!' : 'Service added successfully!', 'success');
+      loadServices();
+    } else {
+      showModal('Error', data.message, 'error');
+    }
+  } catch (error) {
+    console.error('Error saving service:', error);
+    showModal('Error', 'Failed to save service', 'error');
+  }
+}
+
+async function deleteService(serviceId) {
+  showConfirm(
+    'Delete Service',
+    'Are you sure you want to delete this service? This action cannot be undone.',
+    async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        
+        const response = await fetch(`${API_URL}/api/admin/services/${serviceId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showModal('Success', 'Service deleted successfully!', 'success');
+          loadServices();
+        } else {
+          showModal('Error', data.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting service:', error);
+        showModal('Error', 'Failed to delete service', 'error');
+      }
+    },
+    'Yes, Delete',
+    'Cancel'
+  );
+}
+
+/* ============================================================
+   SERVICE BOOKINGS MANAGEMENT
+============================================================ */
+async function loadServiceBookings() {
+  try {
+    const token = localStorage.getItem('adminToken');
+    
+    const response = await fetch(`${API_URL}/api/admin/service-bookings`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      renderServiceBookings(data.bookings);
+    }
+  } catch (error) {
+    console.error('Error loading service bookings:', error);
+    document.getElementById('bookingsList').innerHTML = '<p class="text-danger">Failed to load bookings</p>';
+  }
+}
+
+function renderServiceBookings(bookings) {
+  const container = document.getElementById('bookingsList');
+  
+  if (bookings.length === 0) {
+    container.innerHTML = '<p class="text-muted">No service bookings found</p>';
+    return;
+  }
+  
+  const statusColors = {
+    'Pending': 'warning',
+    'Confirmed': 'info',
+    'In Progress': 'primary',
+    'Completed': 'success',
+    'Cancelled': 'danger'
+  };
+  
+  container.innerHTML = bookings.map(booking => {
+    const statusColor = statusColors[booking.status] || 'secondary';
+    const date = new Date(booking.created_at).toLocaleDateString();
+    const preferredDate = new Date(booking.preferred_date).toLocaleDateString();
+    
+    return `
+      <div class="order-item" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h6 style="color: var(--text-primary) !important;">${booking.booking_id}</h6>
+            <p class="text-muted mb-1"><i class="bi ${booking.icon}"></i> ${booking.service_name}</p>
+            <p class="text-muted mb-0">Duration: ${booking.duration}</p>
+          </div>
+          <div class="text-end">
+            <span class="badge bg-${statusColor} mb-2">${booking.status}</span>
+            <h5 class="mt-2 mb-0" style="color: var(--text-primary) !important;">₱${parseFloat(booking.total_price).toLocaleString('en-US')}</h5>
+          </div>
+        </div>
+        
+        <div class="mb-3 p-3" style="background: var(--bg-muted); border-radius: 6px; border-left: 3px solid var(--accent);">
+          <strong style="color: var(--text-primary) !important;"><i class="bi bi-person"></i> Customer Details:</strong>
+          <p class="mb-1 mt-2" style="color: var(--text-secondary) !important;"><strong>Name:</strong> ${booking.customer_name}</p>
+          <p class="mb-1" style="color: var(--text-secondary) !important;"><strong>Email:</strong> ${booking.customer_email}</p>
+          <p class="mb-1" style="color: var(--text-secondary) !important;"><strong>Phone:</strong> ${booking.customer_phone}</p>
+          <p class="mb-0" style="color: var(--text-secondary) !important;"><strong>User Account:</strong> ${booking.user_name} (${booking.user_email})</p>
+        </div>
+        
+        <div class="mb-3 p-3" style="background: var(--bg-muted); border-radius: 6px; border-left: 3px solid #28a745;">
+          <strong style="color: var(--text-primary) !important;"><i class="bi bi-calendar-check"></i> Appointment:</strong>
+          <p class="mb-1 mt-2" style="color: var(--text-secondary) !important;"><strong>Date:</strong> ${preferredDate}</p>
+          <p class="mb-1" style="color: var(--text-secondary) !important;"><strong>Time:</strong> ${booking.preferred_time}</p>
+          <p class="mb-1" style="color: var(--text-secondary) !important;"><strong>Address:</strong> ${booking.address}</p>
+          ${booking.notes ? `<p class="mb-0" style="color: var(--text-secondary) !important;"><strong>Notes:</strong> ${booking.notes}</p>` : ''}
+        </div>
+        
+        <div class="mb-2">
+          <small class="text-muted">Booked on: ${date}</small>
+        </div>
+        
+        ${booking.status !== 'Completed' && booking.status !== 'Cancelled' ? `
+          <div class="d-flex gap-2 flex-wrap">
+            ${booking.status === 'Pending' ? `
+              <button class="btn btn-sm btn-success" onclick="updateBookingStatus(${booking.id}, 'Confirmed')">
+                <i class="bi bi-check-circle"></i> Confirm
+              </button>
+            ` : ''}
+            ${booking.status === 'Confirmed' ? `
+              <button class="btn btn-sm btn-primary" onclick="updateBookingStatus(${booking.id}, 'In Progress')">
+                <i class="bi bi-hourglass-split"></i> Start Service
+              </button>
+            ` : ''}
+            ${booking.status === 'In Progress' ? `
+              <button class="btn btn-sm btn-success" onclick="updateBookingStatus(${booking.id}, 'Completed')">
+                <i class="bi bi-check-circle-fill"></i> Mark Completed
+              </button>
+            ` : ''}
+            <button class="btn btn-sm btn-danger" onclick="updateBookingStatus(${booking.id}, 'Cancelled')">
+              <i class="bi bi-x-circle"></i> Cancel
+            </button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+async function updateBookingStatus(bookingId, status) {
+  const statusMessages = {
+    'Confirmed': { title: 'Confirm Booking', message: 'Confirm this service booking?' },
+    'In Progress': { title: 'Start Service', message: 'Mark this service as in progress?' },
+    'Completed': { title: 'Complete Service', message: 'Mark this service as completed?' },
+    'Cancelled': { title: 'Cancel Booking', message: 'Cancel this service booking?' }
+  };
+  
+  const statusInfo = statusMessages[status];
+  
+  showConfirm(
+    statusInfo.title,
+    statusInfo.message,
+    async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        
+        const response = await fetch(`${API_URL}/api/admin/service-bookings/${bookingId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showModal('Success', 'Booking status updated successfully!', 'success');
+          loadServiceBookings();
+        } else {
+          showModal('Error', data.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error updating booking status:', error);
+        showModal('Error', 'Failed to update booking status', 'error');
+      }
+    },
+    'Yes, ' + statusInfo.title.split(' ')[0],
+    'Cancel'
+  );
+}
