@@ -131,6 +131,232 @@
       }
     }
     
+    /* ============================================================
+       MOBILE RESPONSIVE STYLES
+    ============================================================ */
+    
+    /* Mobile: Small devices (phones, less than 768px) */
+    @media (max-width: 767px) {
+      .admin-container {
+        padding: 80px 10px 20px;
+      }
+      
+      .admin-header {
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+      
+      .admin-header h2 {
+        font-size: 1.3rem;
+        width: 100%;
+      }
+      
+      .admin-nav {
+        width: 100%;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .admin-nav-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 15px;
+        font-size: 0.9rem;
+      }
+      
+      .admin-card {
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+      
+      .admin-card h4 {
+        font-size: 1.1rem;
+      }
+      
+      /* Stats Grid */
+      .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+      }
+      
+      .stat-card {
+        padding: 15px !important;
+      }
+      
+      .stat-card h3 {
+        font-size: 1.5rem !important;
+      }
+      
+      /* Orders */
+      .order-item {
+        padding: 15px !important;
+        margin-bottom: 12px !important;
+      }
+      
+      .order-item h6 {
+        font-size: 0.95rem;
+      }
+      
+      .order-item .status-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+      }
+      
+      .order-item ul {
+        font-size: 0.85rem;
+        padding-left: 20px;
+      }
+      
+      .btn-action {
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      
+      /* Products Table */
+      .product-table {
+        font-size: 0.8rem;
+      }
+      
+      .product-table th,
+      .product-table td {
+        padding: 8px 5px !important;
+      }
+      
+      .product-table img {
+        width: 40px !important;
+        height: 40px !important;
+      }
+      
+      /* Hide some columns on mobile */
+      .product-table th:nth-child(3),
+      .product-table td:nth-child(3),
+      .product-table th:nth-child(4),
+      .product-table td:nth-child(4) {
+        display: none;
+      }
+      
+      /* Component Requests */
+      .request-card {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+      }
+      
+      .request-card h6 {
+        font-size: 0.95rem;
+      }
+      
+      .request-card .badge {
+        font-size: 0.7rem;
+      }
+      
+      .request-card p {
+        font-size: 0.85rem;
+      }
+      
+      .request-card .btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+        margin-bottom: 6px;
+      }
+      
+      /* Custom Modal Mobile */
+      .custom-modal {
+        width: 95%;
+        max-height: 85vh;
+      }
+      
+      .custom-modal-header {
+        padding: 15px;
+      }
+      
+      .custom-modal-header h3 {
+        font-size: 1.1rem;
+      }
+      
+      .custom-modal-body {
+        padding: 15px;
+      }
+      
+      .custom-modal-footer {
+        padding: 15px;
+        flex-direction: column;
+      }
+      
+      .btn-modal-cancel,
+      .btn-modal-confirm {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+      }
+      
+      /* Form Controls */
+      .form-control,
+      .form-select {
+        font-size: 0.9rem;
+      }
+      
+      /* Delivery Address Display */
+      .order-item > div[style*="border-left"] {
+        padding: 10px !important;
+        font-size: 0.85rem;
+      }
+    }
+    
+    /* Tablet: Medium devices (tablets, 768px to 991px) */
+    @media (min-width: 768px) and (max-width: 991px) {
+      .admin-container {
+        padding: 90px 15px 30px;
+      }
+      
+      .admin-header {
+        padding: 20px;
+      }
+      
+      .admin-nav {
+        gap: 8px;
+      }
+      
+      .admin-nav-btn {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      
+      .product-table {
+        font-size: 0.85rem;
+      }
+      
+      .product-table th,
+      .product-table td {
+        padding: 10px 8px !important;
+      }
+    }
+    
+    /* Landscape Mobile */
+    @media (max-width: 767px) and (orientation: landscape) {
+      .admin-container {
+        padding: 70px 10px 20px;
+      }
+      
+      .admin-header {
+        padding: 12px;
+      }
+      
+      .admin-header h2 {
+        font-size: 1.2rem;
+      }
+      
+      .admin-nav-btn {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+      }
+    }
+    
     .admin-container {
       max-width: 1400px;
       margin: 0 auto;
