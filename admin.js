@@ -135,7 +135,7 @@ async function loadDashboard() {
     
     if (data.success) {
       document.getElementById('totalOrders').textContent = data.stats.totalOrders;
-      document.getElementById('totalRevenue').textContent = '₱' + data.stats.totalRevenue.toLocaleString();
+      document.getElementById('totalRevenue').textContent = '₱' + parseFloat(data.stats.totalRevenue).toLocaleString('en-US');
       document.getElementById('pendingOrders').textContent = data.stats.pendingOrders;
       document.getElementById('totalProducts').textContent = data.stats.totalProducts;
       console.log('✅ Dashboard loaded successfully');
@@ -191,7 +191,7 @@ function renderOrders(orders) {
         </div>
         <div class="text-end">
           <span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span>
-          <h5 class="mt-2 mb-0">₱${order.total.toLocaleString()}</h5>
+          <h5 class="mt-2 mb-0">₱${parseFloat(order.total).toLocaleString('en-US')}</h5>
         </div>
       </div>
       
@@ -199,7 +199,7 @@ function renderOrders(orders) {
         <strong>Items:</strong>
         <ul class="mb-0">
           ${order.items.map(item => `
-            <li>${item.product_name} x${item.quantity} - ₱${(item.price * item.quantity).toLocaleString()}</li>
+            <li>${item.product_name} x${item.quantity} - ₱${(parseFloat(item.price) * parseInt(item.quantity)).toLocaleString('en-US')}</li>
           `).join('')}
         </ul>
       </div>
@@ -346,7 +346,7 @@ function renderProducts(products) {
             <td>${product.id}</td>
             <td>${product.emoji || ''} ${product.name}</td>
             <td>${product.category}</td>
-            <td>₱${product.price.toLocaleString()}</td>
+            <td>₱${parseFloat(product.price).toLocaleString('en-US')}</td>
             <td>${product.stock}</td>
             <td>
               <button class="btn-action btn-edit" onclick='editProduct(${JSON.stringify(product)})'>
@@ -524,7 +524,7 @@ function renderCustomers(customers) {
             <td>${customer.name}</td>
             <td>${customer.email}</td>
             <td>${customer.order_count}</td>
-            <td>₱${customer.total_spent.toLocaleString()}</td>
+            <td>₱${parseFloat(customer.total_spent).toLocaleString('en-US')}</td>
             <td>${new Date(customer.created_at).toLocaleDateString()}</td>
           </tr>
         `).join('')}

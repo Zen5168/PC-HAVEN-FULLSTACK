@@ -202,7 +202,7 @@ const PCBuilder = {
               <p class="component-spec">${p.spec}</p>
               ${hasWarning ? `<div class="component-warning"><i class="bi bi-info-circle"></i> ${compatibility.warnings[0]}</div>` : ''}
               <div class="d-flex justify-content-between align-items-center">
-                <span class="component-price">₱${p.price.toLocaleString()}</span>
+                <span class="component-price">₱${parseFloat(p.price).toLocaleString('en-US')}</span>
                 <span class="component-stock ${p.stock < 10 ? 'low' : ''}">${p.stock} in stock</span>
               </div>
             </div>
@@ -467,12 +467,12 @@ const PCBuilder = {
             </button>
           </div>
           <div class="build-summary-item-name">${comp.emoji} ${comp.name}</div>
-          <div class="build-summary-item-price">₱${comp.price.toLocaleString()}</div>
+          <div class="build-summary-item-price">₱${parseFloat(comp.price).toLocaleString('en-US')}</div>
         </div>
       `;
     }).join('');
     
-    totalPriceEl.textContent = `₱${total.toLocaleString()}`;
+    totalPriceEl.textContent = `₱${parseFloat(total).toLocaleString('en-US')}`;
     if (addBtn) addBtn.disabled = false;
   },
   
@@ -663,7 +663,7 @@ const CartManager = {
         <div class="cart-item">
           <div class="cart-item-info">
             <span class="cart-item-name">${item.emoji} ${item.name}</span>
-            <span class="cart-item-price">₱${(item.price * item.qty).toLocaleString()}</span>
+            <span class="cart-item-price">₱${(parseFloat(item.price) * parseInt(item.qty)).toLocaleString('en-US')}</span>
           </div>
           <div class="cart-item-controls">
             <div class="qty-controls">
@@ -683,7 +683,7 @@ const CartManager = {
       `;
     });
     container.innerHTML = html;
-    subtotalEl.textContent = `₱${subtotal.toLocaleString()}`;
+    subtotalEl.textContent = `₱${parseFloat(subtotal).toLocaleString('en-US')}`;
   },
   checkout() {
     const cart = this.getItems();
@@ -783,7 +783,7 @@ const CartManager = {
             <div class="alert" style="background: var(--bg-muted); border: 1px solid var(--border); color: var(--text-primary); border-radius: 6px; padding: 10px; margin-bottom: 0;">
               <div class="d-flex justify-content-between align-items-center">
                 <strong style="font-size: 0.85rem;">Total:</strong>
-                <strong class="text-primary" style="font-size: 1.1rem;">₱${total.toLocaleString()}</strong>
+                <strong class="text-primary" style="font-size: 1.1rem;">₱${parseFloat(total).toLocaleString('en-US')}</strong>
               </div>
               <small class="text-muted" style="font-size: 0.7rem;">+ delivery fee</small>
             </div>
@@ -868,7 +868,7 @@ const CartManager = {
             </div>
             <div class="custom-modal-body">
               <p><strong>Order ID:</strong> ${data.order.id}</p>
-              <p><strong>Total:</strong> ₱${total.toLocaleString()}</p>
+              <p><strong>Total:</strong> ₱${parseFloat(total).toLocaleString('en-US')}</p>
               <div class="mt-3 p-3" style="background: var(--bg-muted); border-radius: 8px;">
                 <p class="mb-1"><strong>Delivery Address:</strong></p>
                 <p class="mb-1">${deliveryAddress}</p>
@@ -1024,7 +1024,7 @@ function renderAllComponents() {
                     <h4 class="product-name">${p.name}</h4>
                     <p class="product-spec text-truncate-2">${p.spec}</p>
                     <div class="product-footer">
-                      <span class="product-price">₱${p.price.toLocaleString()}</span>
+                      <span class="product-price">₱${parseFloat(p.price).toLocaleString('en-US')}</span>
                       <button class="btn-add-cart" onclick="CartManager.addItem('${p.id}', '${p.name}', ${p.price}, '${p.emoji}')">
                         <i class="bi bi-plus-lg"></i> Allocate
                       </button>
@@ -1051,7 +1051,7 @@ function renderAllComponents() {
                   <h4 class="product-name">${p.name}</h4>
                   <p class="product-spec text-truncate-2">${p.spec}</p>
                   <div class="product-footer">
-                    <span class="product-price">₱${p.price.toLocaleString()}</span>
+                    <span class="product-price">₱${parseFloat(p.price).toLocaleString('en-US')}</span>
                     <button class="btn-add-cart" onclick="CartManager.addItem('${p.id}', '${p.name}', ${p.price}, '${p.emoji}')">
                       <i class="bi bi-plus-lg"></i> Allocate
                     </button>
@@ -1077,7 +1077,7 @@ function renderAllComponents() {
           <h4 class="service-name">${s.name}</h4>
           <p class="service-desc">${s.desc}</p>
           <div class="service-meta">
-            <span class="service-price">₱${s.price.toLocaleString()} <span class="text-muted small">/ Base</span></span>
+            <span class="service-price">₱${parseFloat(s.price).toLocaleString('en-US')} <span class="text-muted small">/ Base</span></span>
             <button class="btn-book-service" onclick="openBookingDialogue('${s.name}')">Request Node</button>
           </div>
         </div>
@@ -1673,13 +1673,13 @@ function showMyOrders() {
                       <div class="order-item">
                         <span class="order-item-name">${item.name}</span>
                         <span class="order-item-qty">x${item.qty}</span>
-                        <span class="order-item-price">₱${(item.price * item.qty).toLocaleString()}</span>
+                        <span class="order-item-price">₱${(parseFloat(item.price) * parseInt(item.qty)).toLocaleString('en-US')}</span>
                       </div>
                     `).join('')}
                   </div>
                   <div class="order-total">
                     <span class="order-total-label">Total:</span>
-                    <span class="order-total-amount">₱${parseFloat(order.total).toLocaleString()}</span>
+                    <span class="order-total-amount">₱${parseFloat(order.total).toLocaleString('en-US')}</span>
                   </div>
                   ${order.status !== 'Cancelled' && order.status !== 'Delivered' ? `
                     <div class="order-actions">
@@ -1755,13 +1755,13 @@ function showMyOrders() {
                     <div class="order-item">
                       <span class="order-item-name">${item.name}</span>
                       <span class="order-item-qty">x${item.qty}</span>
-                      <span class="order-item-price">₱${(item.price * item.qty).toLocaleString()}</span>
+                      <span class="order-item-price">₱${(parseFloat(item.price) * parseInt(item.qty)).toLocaleString('en-US')}</span>
                     </div>
                   `).join('')}
                 </div>
                 <div class="order-total">
                   <span class="order-total-label">Total:</span>
-                  <span class="order-total-amount">₱${order.total.toLocaleString()}</span>
+                  <span class="order-total-amount">₱${parseFloat(order.total).toLocaleString('en-US')}</span>
                 </div>
                 ${order.status !== 'Cancelled' && order.status !== 'Delivered' ? `
                   <div class="order-actions">
