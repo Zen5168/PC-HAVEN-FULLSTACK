@@ -144,6 +144,14 @@
       .admin-header {
         padding: 15px;
         margin-bottom: 15px;
+        flex-direction: column;
+        align-items: flex-start !important;
+      }
+      
+      .admin-header > div:last-child {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 15px;
       }
       
       .admin-header h2 {
@@ -439,6 +447,144 @@
       gap: 10px;
     }
     
+    /* Order Items - Fix Text Visibility */
+    .order-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 20px;
+      margin-bottom: 15px;
+    }
+    
+    .order-item h6 {
+      color: var(--text-primary) !important;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .order-item p {
+      color: var(--text-primary) !important;
+      margin-bottom: 5px;
+    }
+    
+    .order-item .text-muted {
+      color: var(--text-secondary) !important;
+    }
+    
+    .order-item strong {
+      color: var(--text-primary) !important;
+    }
+    
+    .order-item ul {
+      color: var(--text-primary) !important;
+    }
+    
+    .order-item ul li {
+      color: var(--text-primary) !important;
+      margin-bottom: 5px;
+    }
+    
+    /* Delivery Address Section */
+    .order-item > div[style*="border-left"] {
+      background: var(--bg-muted) !important;
+      color: var(--text-primary) !important;
+    }
+    
+    .order-item > div[style*="border-left"] p {
+      color: var(--text-primary) !important;
+    }
+    
+    .order-item > div[style*="border-left"] strong {
+      color: var(--text-primary) !important;
+    }
+    
+    /* Status Badges */
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+    
+    .status-processing {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+      border: 1px solid #ffc107;
+    }
+    
+    .status-delivered {
+      background: rgba(40, 167, 69, 0.2);
+      color: #28a745;
+      border: 1px solid #28a745;
+    }
+    
+    .status-cancelled {
+      background: rgba(220, 53, 69, 0.2);
+      color: #dc3545;
+      border: 1px solid #dc3545;
+    }
+    
+    /* Action Buttons */
+    .btn-action {
+      padding: 10px 16px;
+      border: none;
+      border-radius: var(--radius-btn);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    
+    .btn-deliver {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-deliver:hover {
+      background: #218838;
+    }
+    
+    .btn-delete {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-delete:hover {
+      background: #c82333;
+    }
+    
+    /* Theme Toggle Button */
+    .theme-toggle {
+      background: var(--bg-muted);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-size: 1.1rem;
+    }
+    
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+    
+    .theme-toggle:active {
+      transform: scale(0.95);
+    }
+    
     .stat-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -667,6 +813,14 @@
       <div>
         <h2><i class="bi bi-shield-lock"></i> Admin Dashboard</h2>
         <p style="color: var(--text-secondary); margin: 5px 0 0 0; font-size: 0.9rem;">PC HAVEN Management System</p>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">
+          <i class="bi bi-moon-stars-fill"></i>
+        </button>
+        <button class="btn btn-danger" onclick="adminLogout()" style="padding: 8px 16px; font-size: 0.9rem;">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </button>
       </div>
     </div>
 
