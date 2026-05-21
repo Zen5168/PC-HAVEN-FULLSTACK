@@ -1106,7 +1106,7 @@ async function renderAllComponents() {
           <p class="service-desc">${s.desc}</p>
           <div class="service-meta">
             <span class="service-price">₱${parseFloat(s.price).toLocaleString('en-US')} <span class="text-muted small">/ Base</span></span>
-            <button class="btn-book-service" onclick="openBookingDialogue('${s.name.replace(/'/g, "\\'")}')">Request Node</button>
+            <button class="btn-book-service" onclick="openBookingDialogue(${s.id}, '${s.name.replace(/'/g, "\\'")}', ${s.price})">Request Node</button>
           </div>
         </div>
       </div>
@@ -1167,10 +1167,15 @@ function setProductFilter(catId) {
   if(targetElement) targetElement.scrollIntoView({ behavior: 'smooth' });
 }
 
-function openBookingDialogue(serviceName) {
+function openBookingDialogue(serviceId, serviceName, servicePrice) {
   const modalEl = document.getElementById('bookingModal');
   const titleInput = document.getElementById('bookingServiceName');
   if (!modalEl || !titleInput) return;
+  
+  // Store service details in the modal for later use
+  modalEl.setAttribute('data-service-id', serviceId);
+  modalEl.setAttribute('data-service-name', serviceName);
+  modalEl.setAttribute('data-service-price', servicePrice);
   
   titleInput.value = serviceName;
   const bsModal = new bootstrap.Modal(modalEl);
@@ -1178,14 +1183,84 @@ function openBookingDialogue(serviceName) {
 }
 
 function handleBookingSubmit() {
+  const form = document.getElementById('technicianBookingForm');
   const modalEl = document.getElementById('bookingModal');
-  const closeBtn = document.getElementById('closeBookingModalBtn');
-  if (closeBtn) closeBtn.click();
   
-  setTimeout(() => {
-    ToastSystem.trigger('Technician payload queued. Dispatch route optimized!', '🛠️');
-    document.getElementById('technicianBookingForm').reset();
-  }, 400);
+  if (!form || !modalEl) return;
+  
+  // Get service details from modal
+  const serviceId = modalEl.getAttribute('data-service-id');
+  const serviceName = modalEl.getAttribute('data-service-name');
+  const servicePrice = modalEl.getAttribute('data-service-price');
+  
+  // Get form data
+  const formData = new FormData(form);
+  const bookingData = {
+    serviceId: parseInt(serviceId),
+    customerName: formData.get('customerName'),
+    customerEmail: formData.get('customerEmail'),
+    customerPhone: formData.get('customerPhone'),
+    preferredDate: formData.get('preferredDate'),
+    preferredTime: formData.get('preferredTime'),
+    address: formData.get('address'),
+    notes: formData.get('notes') || ''
+  };
+  
+  // Check if user is logged in
+  const session = localStorage.getItem('userSession');
+  if (!session) {
+    ToastSystem.trigger('Please login to book a service', '⚠️');
+    return;
+  }
+  
+  const user = JSON.parse(session);
+  const token = user.token;
+  
+  // Get API URL
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000/api'
+    : `${window.location.protocol}//${window.location.host}/api`;
+  
+  // Show loading state
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Booking...';
+  
+  // Send booking to API
+  fetch(`${API_URL}/service-bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(bookingData)
+  })
+  .then(response => response.json())
+  .then(data => {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnText;
+    
+    if (data.success) {
+      // Close modal
+      const closeBtn = document.getElementById('closeBookingModalBtn');
+      if (closeBtn) closeBtn.click();
+      
+      // Show success message
+      setTimeout(() => {
+        ToastSystem.trigger(`Service booked successfully! Booking ID: ${data.booking.id}`, '✅');
+        form.reset();
+      }, 400);
+    } else {
+      ToastSystem.trigger(data.message || 'Failed to book service', '❌');
+    }
+  })
+  .catch(error => {
+    console.error('Booking error:', error);
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnText;
+    ToastSystem.trigger('Failed to book service. Please try again.', '❌');
+  });
 }
 
 /* ============================================================
